@@ -68,17 +68,37 @@ with col1:
     note = st.text_area("หมายเหตุ:", value=default_note, height=70)
     
     st.write("**ติ๊กเลือกขั้นตอนที่ทำเสร็จแล้ว:**")
-    s1 = st.checkbox("1. รับหนังสือจากต้นสังกัด", value=default_steps[0])
-    s2 = st.checkbox("2. กรอกประวัติ พิมพ์ลายนิ้วมือกลิ้งหมึก 2 ชุด", value=default_steps[1])
-    s3 = st.checkbox("3. ทำหนังสือส่งตรวจ พฐ. ลงลายเซ็นรอง", value=default_steps[2])
-    s4 = st.checkbox("4. ไปส่ง พฐ. ตรวจที่ ภ.จว. แล้วนำกลับมา", value=default_steps[3])
-    s5 = st.checkbox("5. ถ่ายเอกสารผลตรวจ 1 ชุด ไว้ในสำเนาคู่ฉบับ", value=default_steps[4])
-    s6 = st.checkbox("6. ทำหนังสือส่ง รายงานผลกลับต้นสังกัด (2 ชุด)", value=default_steps[5])
-    s7 = st.checkbox("7. ต้นสังกัดเซ็นรับทั้งตัวจริงและคู่สำเนา นำคู่สำเนากลับมา", value=default_steps[6])
+    # กำหนดข้อความของแต่ละขั้นตอนไว้ดึงไปแสดงในตาราง
+    step_labels = [
+        "1. รับหนังสือจากต้นสังกัด",
+        "2. กรอกประวัติ พิมพ์ลายนิ้วมือกลิ้งหมึก 2 ชุด",
+        "3. ทำหนังสือส่งตรวจ พฐ. ลงลายเซ็นรอง",
+        "4. ไปส่ง พฐ. ตรวจที่ ภ.จว. แล้วนำกลับมา",
+        "5. ถ่ายเอกสารผลตรวจ 1 ชุด ไว้ในสำเนาคู่ฉบับ",
+        "6. ทำหนังสือส่ง รายงานผลกลับต้นสังกัด (2 ชุด)",
+        "7. ต้นสังกัดเซ็นรับตัวจริงและคู่สำเนา เรียบร้อย"
+    ]
+    
+    s1 = st.checkbox(step_labels[0], value=default_steps[0])
+    s2 = st.checkbox(step_labels[1], value=default_steps[1])
+    s3 = st.checkbox(step_labels[2], value=default_steps[2])
+    s4 = st.checkbox(step_labels[3], value=default_steps[3])
+    s5 = st.checkbox(step_labels[4], value=default_steps[4])
+    s6 = st.checkbox(step_labels[5], value=default_steps[5])
+    s7 = st.checkbox(step_labels[6], value=default_steps[6])
 
     checks = [s1, s2, s3, s4, s5, s6, s7]
-    done_count = sum(checks)
-    status_text = "🟢 เสร็จสิ้นครบ 7 ขั้นตอน" if s7 else (f"🟡 กำลังดำเนินการ (ขั้นตอนที่ {done_count})" if done_count > 0 else "⚪ ยังไม่ได้เริ่ม")
+    
+    # 💡 ระบบคำนวณสถานะ: ไล่เช็คจากขั้นตอนท้ายสุดย้อนขึ้นมา เพื่อหาขั้นตอนล่าสุดที่ถูกติ๊ก
+    status_text = "⚪ ยังไม่ได้เริ่ม"
+    if s7:
+        status_text = f"🟢 {step_labels[6]}"
+    else:
+        # วนลูปย้อนกลับหาขั้นตอนล่าสุดที่ติ๊กสำเร็จ
+        for idx in range(5, -1, -1):
+            if checks[idx]:
+                status_text = f"🟡 {step_labels[idx]}"
+                break
 
     btn_label = "💾 อัปเดตและบันทึกข้อมูลข้อมูลลงระบบ" if st.session_state.edit_id else "💾 บันทึกข้อมูลลงระบบ"
     
