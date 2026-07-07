@@ -1,42 +1,47 @@
 import streamlit as st
+from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 
-# ตั้งค่าหน้าเว็บ
 st.set_page_config(page_title="ระบบตรวจประวัติ สภ.", layout="wide")
 
-# ส่วนหัวของเว็บ (สีเลือดหมูตำรวจ)
 st.markdown("""
     <div style='background-color:#800000;padding:15px;border-radius:10px;margin-bottom:20px'>
         <h2 style='color:white;text-align:center;margin:0;'>ระบบฐานข้อมูลและติดตามขั้นตอนการตรวจประวัติ (สภ. ส่ง พฐ.)</h2>
     </div>
 """, unsafe_allow_html=True)
 
-# จำลองฐานข้อมูลใน Session State
-if "db_dict" not in st.session_state:
-    st.session_state.db_dict = {}
+# เชื่อมต่อ Google Sheets
+try:
+    conn = st.connection("gsheets", type=GSheetsConnection)
+    df = conn.read(ttl="0s")
+except Exception:
+    df = pd.DataFrame(columns=["เลขที่หนังสือรับ", "ชื่อ-สกุล ผู้ขอตรวจ", "หน่วยงานต้นสังกัด", "สถานะปัจจุบัน", "หมายเหตุ", "step1", "step2", "step3", "step4", "step5", "step6", "step7"])
 
-# ดึงข้อมูลเพื่อเตรียมแก้ไข (ถ้ามี)
-edit_key = st.session_state.get("edit_key", None)
+# ค้นหาเคสที่จะแก้ไข
+if "edit_id" not in st.session_state:
+    st.session_state.edit_id = None
+
 default_doc = ""
 default_name = ""
 default_dept = ""
 default_note = ""
 default_steps = [False] * 7
 
-if edit_key and edit_key in st.session_state.db_dict:
-    item = st.session_state.db_dict[edit_key]
-    default_doc = edit_key
-    default_name = item["name"]
-    default_dept = item["dept"]
-    default_note = item["note"]
-    default_steps = item["steps"]
+if st.session_state.edit_id is not None and not df.empty:
+    target = df[df["เลขที่หนังสือรับ"].astype(str) == str(st.session_state.edit_id)]
+    if not target.empty:
+        idx = target.index[0]
+        default_doc = str(target.at[idx, "เลขที่หนังสือรับ"])
+        default_name = str(target.at[idx, "ชื่อ-สกุล ผู้ขอตรวจ"])
+        default_dept = str(target.at[idx, "หน่วยงานต้นสังกัด"]) if pd.notna(target.at[idx, "หน่วยงานต้นสังกัด"]) else ""
+        default_note = str(target.at[idx, "หมายเหตุ"]) if pd.notna(target.at[idx, "หมายเหตุ"]) else ""
+        for i in range(7):
+            default_steps[i] = bool(target.at[idx, f"step{i+1}"])
 
-# แบ่งหน้าจอเป็น 2 ฝั่ง (ฝั่งกรอกข้อมูล - ฝั่งตาราง)
 col1, col2 = st.columns([1, 1.3])
 
 with col1:
     st.subheader("📝 บันทึก / แก้ไขข้อมูล")
-    
     doc_num = st.text_input("เลขที่หนังสือรับ:", value=default_doc)
     name = st.text_input("ชื่อ-สกุล ผู้ขอตรวจสอบประวัติ:", value=default_name)
     dept = st.text_input("หน่วยงานต้นสังกัด (ที่ส่งมา):", value=default_dept)
@@ -51,7 +56,6 @@ with col1:
     step6 = st.checkbox("6. ทำหนังสือส่ง รายงานผลกลับต้นสังกัด (2 ชุด)", value=default_steps[5])
     step7 = st.checkbox("7. ต้นสังกัดเซ็นรับทั้งตัวจริงและคู่สำเนา นำคู่สำเนากลับมา", value=default_steps[6])
 
-    # คำนวณสถานะ
     checks = [step1, step2, step3, step4, step5, step6, step7]
     done_count = sum(checks)
     
@@ -62,75 +66,55 @@ with col1:
     else:
         status_text = "⚪ ยังไม่ได้เริ่ม"
 
-    btn_label = "💾 อัปเดตข้อมูลเก่า" if edit_key else "💾 บันทึกข้อมูลลงระบบ"
+    btn_label = "💾 อัปเดตข้อมูลเก่า" if st.session_state.edit_id else "💾 บันทึกข้อมูลลงระบบ"
     
     if st.button(btn_label, type="primary", use_container_width=True):
         if doc_num and name:
-            # บันทึกข้อมูล (ถ้าใช้เลขหนังสือซ้ำจะถือเป็นการอัปเดตตัวเดิมอัตโนมัติ)
-            st.session_state.db_dict[doc_num] = {
-                "name": name,
-                "dept": dept,
-                "note": note,
-                "status": status_text,
-                "steps": checks
-            }
-            # ล้างสถานะแก้ไขหลังจากบันทึกเสร็จ
-            if "edit_key" in st.session_state:
-                del st.session_state.edit_key
-            st.success(f"บันทึกข้อมูลเลขที่ {doc_num} สำเร็จ!")
+            # ลบแถวเก่าถ้าเป็นการอัปเดตหรือเลขซ้ำ
+            if not df.empty:
+                df = df[df["เลขที่หนังสือรับ"].astype(str) != str(doc_num)]
+            
+            new_row = pd.DataFrame([{
+                "เลขที่หนังสือรับ": doc_num, "ชื่อ-สกุล ผู้ขอตรวจ": name, "หน่วยงานต้นสังกัด": dept,
+                "สถานะปัจจุบัน": status_text, "หมายเหตุ": note,
+                "step1": step1, "step2": step2, "step3": step3, "step4": step4, "step5": step5, "step6": step6, "step7": step7
+            }])
+            df = pd.concat([df, new_row], ignore_index=True)
+            conn.update(data=df)
+            st.session_state.edit_id = None
+            st.success("บันทึกข้อมูลลงฐานข้อมูล Google Sheets เรียบร้อย!")
             st.rerun()
         else:
             st.error("กรุณากรอกข้อมูลเลขที่หนังสือและชื่อผู้ขอตรวจให้ครบถ้วน")
-            
-    if edit_key:
-        if st.button("❌ ยกเลิกการแก้ไข (กลับไปเพิ่มเคสใหม่)", use_container_width=True):
-            if "edit_key" in st.session_state:
-                del st.session_state.edit_key
+
+    if st.session_state.edit_id is not None:
+        if st.button("❌ ยกเลิกการแก้ไข", use_container_width=True):
+            st.session_state.edit_id = None
             st.rerun()
 
 with col2:
     st.subheader("📊 ตารางตรวจสอบสถานะปัจจุบัน")
-    
-    if st.session_state.db_dict:
-        # แปลงข้อมูลใน dict ออกมาเป็น DataFrame เพื่อแสดงในตาราง
-        records = []
-        for k, v in st.session_state.db_dict.items():
-            records.append({
-                "เลขที่หนังสือรับ": k,
-                "ชื่อ-สกุล ผู้ขอตรวจ": v["name"],
-                "หน่วยงานต้นสังกัด": v["dept"],
-                "สถานะปัจจุบัน": v["status"],
-                "หมายเหตุ": v["note"]
-            })
-        df = pd.DataFrame(records)
-        
-        # แสดงตารางข้อมูล
-        st.dataframe(df, use_container_width=True, hide_index=True)
+    if not df.empty:
+        show_df = df[["เลขที่หนังสือรับ", "ชื่อ-สกุล ผู้ขอตรวจ", "หน่วยงานต้นสังกัด", "สถานะปัจจุบัน", "หมายเหตุ"]]
+        st.dataframe(show_df, use_container_width=True, hide_index=True)
         
         st.write("---")
         st.write("**⚙️ เครื่องมือจัดการข้อมูล:**")
-        
-        # ตัวเลือกสำหรับแก้ไขหรือลบข้อมูล
-        select_doc = st.selectbox("เลือกเลขที่หนังสือรับที่ต้องการจัดการ:", ["-- เลือกรายการ --"] + list(st.session_state.db_dict.keys()))
+        select_doc = st.selectbox("เลือกเลขที่หนังสือรับที่ต้องการจัดการ:", ["-- เลือกรายการ --"] + list(df["เลขที่หนังสือรับ"].unique()))
         
         if select_doc != "-- เลือกรายการ --":
             c_edit, c_del = st.columns(2)
             with c_edit:
                 if st.button("✏️ ดึงข้อมูลไปแก้ไข", use_container_width=True):
-                    st.session_state.edit_key = select_doc
+                    st.session_state.edit_id = select_doc
                     st.rerun()
             with c_del:
                 if st.button("🗑️ ลบข้อมูลเคสนี้", use_container_width=True):
-                    del st.session_state.db_dict[select_doc]
-                    if st.session_state.get("edit_key") == select_doc:
-                        del st.session_state.edit_key
-                    st.success(f"ลบข้อมูลเลขที่ {select_doc} เรียบร้อยแล้ว")
+                    df = df[df["เลขที่หนังสือรับ"].astype(str) != str(select_doc)]
+                    conn.update(data=df)
+                    if st.session_state.edit_id == select_doc:
+                        st.session_state.edit_id = None
+                    st.success("ลบข้อมูลออกจาก Google Sheets เรียบร้อย!")
                     st.rerun()
-                    
-        if st.button("⚠️ ล้างข้อมูลทั้งหมดในตาราง", type="secondary"):
-            st.session_state.db_dict = {}
-            if "edit_key" in st.session_state:
-                del st.session_state.edit_key
-            st.rerun()
     else:
-        st.info("ยังไม่มีข้อมูลในระบบ กรุณากรอกข้อมูลในฟอร์มฝั่งซ้ายมือ")
+        st.info("ยังไม่มีข้อมูลในระบบ หรือกำลังเชื่อมต่อฐานข้อมูล...")
