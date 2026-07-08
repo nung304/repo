@@ -198,6 +198,9 @@ with col1:
 
     btn_label = "💾 อัปเดตข้อมูลและบันทึกลงระบบ" if st.session_state.edit_id else "💾 บันทึกข้อมูลลงระบบ"
     
+    # 🎯 สร้างช่องแสดงสถานะแจ้งเตือนที่สามารถถูกเคลียร์ค่าได้แบบไดนามิก
+    msg_slot = st.empty()
+    
     btn_col1, btn_col2 = st.columns([2, 1])
     with btn_col1:
         if st.button(btn_label, type="primary", use_container_width=True):
@@ -212,17 +215,18 @@ with col1:
                     ENTRY_MAP["s4"]: str(checks[3]), ENTRY_MAP["s5"]: str(checks[4]), ENTRY_MAP["s6"]: str(checks[5]), ENTRY_MAP["s7"]: str(checks[6])
                 }
                 try:
+                    # ส่งข้อมูลและกำหนดเวลา Timeout ป้องกันอาการค้าง
                     requests.post(FORM_URL, data=form_data, timeout=8)
                     st.session_state.db_dict[str(doc_num)] = {"name": name, "dept": dept, "status": status_text, "note": note, "steps": checks}
                     st.session_state.edit_id = None
                     st.session_state["prevent_reloading"] = True
                     st.session_state.form_key_index += 1
-                    st.success("🎉 บันทึกข้อมูลสำเร็จแล้วครับพี่!")
+                    msg_slot.success("🎉 บันทึกข้อมูลสำเร็จแล้วครับพี่!")
                     st.rerun()
                 except:
-                    st.error("❌ เกิดข้อผิดพลาดทางเครือข่าย")
+                    msg_slot.error("❌ เกิดข้อผิดพลาดทางเครือข่าย (แต่ระบบจำข้อมูลบนหน้าเว็บไว้แล้ว)")
             else:
-                st.error("กรุณากรอกข้อมูลเลขที่หนังสือและชื่อผู้ขอตรวจให้ครบถ้วน")
+                msg_slot.error("กรุณากรอกข้อมูลเลขที่หนังสือและชื่อผู้ขอตรวจให้ครบถ้วน")
                 
     with btn_col2:
         if st.session_state.edit_id:
