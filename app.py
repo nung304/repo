@@ -35,7 +35,7 @@ step_labels = [
     "2. กรอกประวัติ พิมพ์ลายนิ้วมือกลิ้งหมึก 2 ชุด",
     "3. ทำหนังสือส่งตรวจ พฐ. ลงลายเซ็นรอง",
     "4. ไปส่ง พฐ. ตรวจที่ ภ.จว. แล้วนำกลับมา",
-    "5. ถ่ายเอกสารผลตรวจ 1 ชุด ไว้ในสำเนาคู่ฉับ",
+    "5. ถ่ายเอกสารผลตรวจ 1 ชุด ไว้ในสำเนาคู่ฉบับ",
     "6. ทำหนังสือส่ง รายงานผลกลับต้นสังกัด (2 ชุด)",
     "7. ต้นสังกัดเซ็นรับตัวจริงและคู่สำเนา เรียบร้อย"
 ]
@@ -101,19 +101,36 @@ def confirm_edit_dialog(doc_id, name):
         if st.button("❌ ยกเลิก", use_container_width=True):
             st.rerun()
 
-@st.dialog("⚠️ ยืนยันการลบข้อมูล")
-def confirm_delete_dialog(doc_id, name):
-    st.write(f"คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลของ **{name}** (เลขที่หนังสือ: {doc_id}) ออกจากระบบชั่วคราว?")
-    st.caption("Note: การลบตรงนี้จะลบออกจากหน้าจอชั่วคราว หากต้องการลบถาวรต้องไปลบแถวใน Google Sheets ครับ")
+@st.dialog("⚠️ ยืนยันการลบข้อมูลถาวรบนหน้าจอ")
+def confirm_delete_dialog(doc_id, name, current_item):
+    st.write(f"คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลของ **{name}** (เลขที่หนังสือ: {doc_id}) ออกจากระบบหน้าเว็บ?")
+    st.error("🚨 เมื่อกดยืนยัน ระบบจะบันทึกสถานะการลบไปหลังบ้าน และรายชื่อนี้จะไม่ฟื้นกลับมาบนหน้าจออีกแม้จะกดรีเฟรช")
     st.write("")
     c1, c2 = st.columns(2)
     with c1:
         if st.button("🚨 ยืนยันลบข้อมูล", type="primary", use_container_width=True):
-            if doc_id in st.session_state.db_dict:
-                del st.session_state.db_dict[doc_id]
-            st.session_state["prevent_reloading"] = True
-            st.toast(f"ลบข้อมูลเลขที่ {doc_id} เรียบร้อยแล้ว")
-            st.rerun()
+            # ส่งคำสั่งอัปเดตสถานะเป็น "❌ ลบข้อมูลแล้ว" ไปที่ Google Form หลังบ้าน
+            form_data = {
+                ENTRY_MAP["doc"]: doc_id,
+                ENTRY_MAP["name"]: name,
+                ENTRY_MAP["dept"]: current_item["dept"],
+                ENTRY_MAP["status"]: "❌ ลบข้อมูลแล้ว",
+                ENTRY_MAP["note"]: current_item["note"],
+                ENTRY_MAP["s1"]: str(current_item["steps"][0]), ENTRY_MAP["s2"]: str(current_item["steps"][1]),
+                ENTRY_MAP["s3"]: str(current_item["steps"][2]), ENTRY_MAP["s4"]: str(current_item["steps"][3]),
+                ENTRY_MAP["s5"]: str(current_item["steps"][4]), ENTRY_MAP["s6"]: str(current_item["steps"][5]),
+                ENTRY_MAP["s7"]: str(current_item["steps"][6])
+            }
+            try:
+                requests.post(FORM_URL, data=form_data)
+                # ลบออกจากโครงสร้างดิกรีที่เปิดอยู่ ณ ปัจจุบันทันที
+                if doc_id in st.session_state.db_dict:
+                    st.session_state.db_dict[doc_id]["status"] = "❌ ลบข้อมูลแล้ว"
+                st.session_state["prevent_reloading"] = True
+                st.success(f"ลบข้อมูลเลขที่ {doc_id} สำเร็จแล้วครับพี่!")
+                st.rerun()
+            except:
+                st.error("เกิดข้อผิดพลาดทางเครือข่าย ไม่สามารถส่งคำสั่งลบได้")
     with c2:
         if st.button("❌ ยกเลิก", use_container_width=True):
             st.rerun()
@@ -234,6 +251,8 @@ with col2:
     counts = [0] * 8  
     for k, v in st.session_state.db_dict.items():
         v_status = v["status"]
+        if "❌ ลบข้อมูลแล้ว" in v_status:
+            continue  # ไม่นับรวมข้อมูลที่ถูกสั่งลบแล้วในแดชบอร์ด
         if "ยังไม่ได้เริ่ม" in v_status:
             counts[7] += 1
         else:
@@ -325,6 +344,10 @@ with col2:
     if st.session_state.db_dict:
         all_records = []
         for k, v in st.session_state.db_dict.items():
+            # 🚨 จุดสำคัญ: ถ้าตรวจพบว่าสถานะคือ ลบข้อมูลแล้ว ไม่ต้องนำมาเก็บในลิสต์แสดงผล
+            if "❌ ลบข้อมูลแล้ว" in v["status"]:
+                continue
+                
             all_records.append({
                 "เลขที่หนังสือรับ": str(k),
                 "ชื่อ-สกุล ผู้ขอตรวจ": str(v["name"]),
@@ -347,7 +370,7 @@ with col2:
                 if not match: continue
             filtered_records.append(r)
 
-        # 5. แสดงผลตารางรายชื่อข้อมูล (ปรับสัดส่วนคอลัมน์เพื่อรองรับปุ่ม ลบ)
+        # 5. แสดงผลตารางรายชื่อข้อมูล
         if filtered_records:
             t_col1, t_col2, t_col3, t_col4, t_col5 = st.columns([1.1, 1.4, 1.1, 1.8, 1.2])
             with t_col1: st.caption("**เลขหนังสือรับ**")
@@ -364,14 +387,13 @@ with col2:
                 with r_col3: st.write(row["หน่วยงานต้นสังกัด"])
                 with r_col4: st.write(row["สถานะปัจจุบัน"])
                 with r_col5:
-                    # แบ่งเป็น 2 ปุ่มย่อยข้างกัน: แก้ไข และ ลบ
                     action_c1, action_c2 = st.columns(2)
                     with action_c1:
                         if st.button("✏️ แก้ไข", key=f"edit_btn_{row['เลขที่หนังสือรับ']}", use_container_width=True):
                             confirm_edit_dialog(row["เลขที่หนังสือรับ"], row["ชื่อ-สกุล ผู้ขอตรวจ"])
                     with action_c2:
                         if st.button("🗑️ ลบ", key=f"del_btn_{row['เลขที่หนังสือรับ']}", use_container_width=True):
-                            confirm_delete_dialog(row["เลขที่หนังสือรับ"], row["ชื่อ-สกุล ผู้ขอตรวจ"])
+                            confirm_delete_dialog(row["เลขที่หนังสือรับ"], row["ชื่อ-สกุล ผู้ขอตรวจ"], st.session_state.db_dict[row['เลขที่หนังสือรับ']])
                             
                 if row["หมายเหตุ"]:
                     st.markdown(f"<p style='color:gray; font-size:13px; margin-left:10px; margin-top:-5px; margin-bottom:12px;'>📌 หมายเหตุ: {row['หมายเหตุ']}</p>", unsafe_allow_html=True)
