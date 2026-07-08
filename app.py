@@ -198,12 +198,15 @@ with col1:
 
     btn_label = "💾 อัปเดตข้อมูลและบันทึกลงระบบ" if st.session_state.edit_id else "💾 บันทึกข้อมูลลงระบบ"
     
-    # 🎯 สร้างช่องแสดงสถานะแจ้งเตือนที่สามารถถูกเคลียร์ค่าได้แบบไดนามิก
+    # 🎯 กล่องรับการแจ้งเตือน
     msg_slot = st.empty()
     
     btn_col1, btn_col2 = st.columns([2, 1])
     with btn_col1:
         if st.button(btn_label, type="primary", use_container_width=True):
+            # 🎯 บังคับเคลียร์พื้นที่หน้าจอให้ว่างเปล่าทันทีที่กดปุ่ม เพื่อทำลาย Error ที่ตกค้างอยู่เดิมออกไปก่อน
+            msg_slot.empty()
+            
             if doc_num and name:
                 form_data = {
                     ENTRY_MAP["doc"]: doc_num,
@@ -215,7 +218,7 @@ with col1:
                     ENTRY_MAP["s4"]: str(checks[3]), ENTRY_MAP["s5"]: str(checks[4]), ENTRY_MAP["s6"]: str(checks[5]), ENTRY_MAP["s7"]: str(checks[6])
                 }
                 try:
-                    # ส่งข้อมูลและกำหนดเวลา Timeout ป้องกันอาการค้าง
+                    # พยายามส่งข้อมูลและเปิดเวลารอนานสูงสุด 30 วินาที
                     requests.post(FORM_URL, data=form_data, timeout=30)
                     st.session_state.db_dict[str(doc_num)] = {"name": name, "dept": dept, "status": status_text, "note": note, "steps": checks}
                     st.session_state.edit_id = None
@@ -224,6 +227,7 @@ with col1:
                     msg_slot.success("🎉 บันทึกข้อมูลสำเร็จแล้วครับพี่!")
                     st.rerun()
                 except:
+                    # หากเน็ตหน่วงจริง ๆ ค่อยยอมให้แสดงข้อความดักจำข้อมูลขึ้นมาใหม่
                     msg_slot.error("❌ เกิดข้อผิดพลาดทางเครือข่าย (แต่ระบบจำข้อมูลบนหน้าเว็บไว้แล้ว)")
             else:
                 msg_slot.error("กรุณากรอกข้อมูลเลขที่หนังสือและชื่อผู้ขอตรวจให้ครบถ้วน")
