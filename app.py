@@ -10,15 +10,15 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# 🔗 1. ลิงก์ยิงฟอร์มหลังบ้านของพี่ จากรูป action ในระบบ
-FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSckbSH3a337W8yknYgAsAw7esyGyEv55lgK8g6QWCv_q2HtFg/formResponse"
+# 🔗 1. ลิงก์ยิงฟอร์มหลังบ้าน (อัปเดตเป็นตัวใหม่ที่พี่ส่งมาเรียบร้อยครับ)
+FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSckbSH3a337W8yknYgAsAw7esyGyEv55lgK8g6qWCv_q2HtFg/formResponse"
 
-# 🔑 2. แผนผังรหัสกล่องข้อความจากภาพถ่ายตรวจสอบหน้าจอของพี่
+# 🔑 2. แผนผังรหัสกล่องข้อความ Google Form ของพี่
 ENTRY_MAP = {
     "doc": "entry.1277005650",       # เลขที่หนังสือรับ
     "name": "entry.921566157",       # ชื่อ-สกุล ผู้ขอตรวจ
     "dept": "entry.1915980561",      # หน่วยงานต้นสังกัด
-    "status": "entry.1882399362",    # สถานะปัจจุบัน
+    "status": "entry.1882399362",    # Status ปัจจุบัน
     "note": "entry.1501544296",      # หมายเหตุ
     "s1": "entry.1914699467",        # step1
     "s2": "entry.1895799813",        # step2
@@ -26,32 +26,30 @@ ENTRY_MAP = {
     "s4": "entry.452301442",         # step4
     "s5": "entry.1142071523",        # step5
     "s6": "entry.20673364",          # step6
-    "s7": "entry.1786061219",       # step7 (จำลองเนื่องจากพฐ.มี 6 ข้อในโค้ดเก่า)
+    "s7": "entry.1786061219",        # step7
 }
 
-# 🔄 3. ฟังก์ชันดึงลิงก์อ่านข้อมูลโดยตรงผ่านสิทธิ์แชร์ "ทุกคนที่มีลิงก์"
+# 🔄 3. ฟังก์ชันดึงลิงก์อ่านข้อมูลโดยตรงผ่านสิทธิ์แชร์
 def get_sheet_urls():
     try:
         base_url = st.secrets["connections"]["gsheets"]["spreadsheet"]
         sheet_id = base_url.split("/d/")[1].split("/edit")[0] if "/edit" in base_url else base_url.split("/d/")[1].split("/")[0]
-        # เจาะจงดึงข้อมูลจากแท็บแรกที่มีข้อมูลการตอบกลับจากฟอร์มมาแสดงผล
         return f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv"
     except:
         return None
 
 read_url = get_sheet_urls()
 
-# ตัวแปรเก็บฐานข้อมูลชั่วคราวบนหน้าจอหลัก
+# ตัวแปรเก็บฐานข้อมูลในความจำหน้าจอ
 if "db_dict" not in st.session_state:
     st.session_state.db_dict = {}
 
-# ดึงข้อมูลจาก Sheets มาอัปเดตลงตารางขวา
+# ดึงข้อมูลจาก Sheets มาอัปเดตลงตาราง
 if read_url:
     try:
         df = pd.read_csv(read_url)
         if not df.empty:
             for _, row in df.iterrows():
-                # ตรวจเช็กจำนวนคอลัมน์เพื่อความชัวร์ (ปกติคอลัมน์แรกคือ Timestamp ของ Form)
                 if len(row) >= 6:
                     k = str(row.iloc[1]).strip()
                     if k and k != "nan" and k != "":
@@ -68,6 +66,7 @@ if read_url:
 if "edit_id" not in st.session_state:
     st.session_state.edit_id = None
 
+# ตั้งค่าเริ่มต้นของฟอร์มกรอกข้อมูล
 default_doc, default_name, default_dept, default_note = "", "", "", ""
 default_steps = [False] * 7
 
@@ -83,6 +82,31 @@ col1, col2 = st.columns([1, 1.3])
 
 with col1:
     st.subheader("📝 บันทึก / แก้ไขข้อมูล")
+    
+    # 🔍 ส่วนค้นหาและเลือกรายชื่อเพื่อนำไปแก้ไข
+    if st.session_state.db_dict:
+        search_options = ["--- ➕ เพิ่มข้อมูลรายใหม่ ---"] + sorted(list(st.session_state.db_dict.keys()))
+        
+        current_index = 0
+        if st.session_state.edit_id in search_options:
+            current_index = search_options.index(st.session_state.edit_id)
+            
+        selected_doc = st.selectbox("🔍 ค้นหาเลขที่หนังสือรับ เพื่อดึงข้อมูลมาแก้ไข:", search_options, index=current_index)
+        
+        if selected_doc != "--- ➕ เพิ่มข้อมูลรายใหม่ ---":
+            if st.session_state.edit_id != selected_doc:
+                st.session_state.edit_id = selected_doc
+                st.rerun()
+        else:
+            if st.session_state.edit_id is not None:
+                st.session_state.edit_id = None
+                st.rerun()
+    else:
+        st.info("💡 ยังไม่มีข้อมูลในระบบ สามารถกรอกเพิ่มข้อมูลรายใหม่ได้ทันที")
+
+    st.write("---")
+    
+    # ฟอร์มรับข้อมูล (เปลี่ยนค่าอัตโนมัติเมื่อเลือกจากกล่องค้นหาด้านบน)
     doc_num = st.text_input("เลขที่หนังสือรับ:", value=default_doc)
     name = st.text_input("ชื่อ-สกุล ผู้ขอตรวจสอบประวัติ:", value=default_name)
     dept = st.text_input("หน่วยงานต้นสังกัด (ที่ส่งมา):", value=default_dept)
@@ -113,12 +137,12 @@ with col1:
     if s7:
         status_text = f"🟢 {step_labels[6]}"
     else:
-        for idx in range(5, -1, -1):
+        for idx in range(6, -1, -1):
             if checks[idx]:
                 status_text = f"🟡 {step_labels[idx]}"
                 break
 
-    btn_label = "💾 อัปเดตและบันทึกข้อมูลข้อมูลลงระบบ" if st.session_state.edit_id else "💾 บันทึกข้อมูลลงระบบ"
+    btn_label = "💾 อัปเดตข้อมูลและบันทึกลงระบบ" if st.session_state.edit_id else "💾 บันทึกข้อมูลลงระบบ"
     
     if st.button(btn_label, type="primary", use_container_width=True):
         if doc_num and name:
@@ -132,23 +156,17 @@ with col1:
                 ENTRY_MAP["s4"]: str(s4), ENTRY_MAP["s5"]: str(s5), ENTRY_MAP["s6"]: str(s6), ENTRY_MAP["s7"]: str(s7)
             }
             try:
-                # ส่งเข้า Google ฟอร์มตรงๆ ไม่ต้องผ่าน Service Account
                 response = requests.post(FORM_URL, data=form_data)
                 
-                # บันทึกเข้าความจำหน้าจอทันทีเพื่อความเร็ว
                 st.session_state.db_dict[str(doc_num)] = {"name": name, "dept": dept, "status": status_text, "note": note, "steps": checks}
                 st.session_state.edit_id = None
-                st.success("🎉 บันทึกข้อมูลเข้า Google Sheets สำเร็จเรียบร้อยแล้วครับพี่!")
+                st.success("🎉 บันทึกการอัปเดตข้อมูลสำเร็จเรียบร้อยแล้วครับพี่!")
                 st.balloons()
                 st.rerun()
             except Exception as e:
                 st.error("❌ เกิดข้อผิดพลาดทางเครือข่าย แต่บันทึกบนหน้าจอชั่วคราวให้แล้วครับ")
         else:
             st.error("กรุณากรอกข้อมูลเลขที่หนังสือและชื่อผู้ขอตรวจให้ครบถ้วน")
-
-    if st.session_state.edit_id and st.button("❌ ยกเลิกการแก้ไข", use_container_width=True):
-        st.session_state.edit_id = None
-        st.rerun()
 
 with col2:
     st.subheader("📊 ตารางตรวจสอบสถานะปัจจุบัน")
@@ -169,4 +187,4 @@ with col2:
             st.session_state.clear()
             st.rerun()
     else:
-        st.info("ยังไม่มีข้อมูลในระบบ หรือกำลังเชื่อมต่อฐานข้อมูล...")
+        st.info("ยังไม่มีข้อมูลในระบบ
