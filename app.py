@@ -66,7 +66,7 @@ if read_url:
 if "edit_id" not in st.session_state:
     st.session_state.edit_id = None
 
-# ใช้ session_state ควบคุมค่าของ Checkbox เพื่อทำระบบ Auto-fill ก่อนหน้า
+# ใช้ session_state ควบคุมค่าของ Checkbox
 if "current_steps" not in st.session_state:
     st.session_state.current_steps = [False] * 7
 
@@ -79,7 +79,6 @@ if st.session_state.edit_id and st.session_state.edit_id in st.session_state.db_
     default_name = item["name"]
     default_dept = item["dept"]
     default_note = item["note"]
-    # ปรับค่าตามข้อมูลเก่าที่ดึงมาแก้ไข (ถ้าไม่มีการกดเปลี่ยนบนหน้าจอ)
     if "last_edit_id" not in st.session_state or st.session_state.last_edit_id != st.session_state.edit_id:
         st.session_state.current_steps = item["steps"] if len(item["steps"]) == 7 else [False]*7
         st.session_state.last_edit_id = st.session_state.edit_id
@@ -88,17 +87,15 @@ else:
         st.session_state.current_steps = [False] * 7
         st.session_state.last_edit_id = None
 
-# ฟังก์ชันกลไก Auto-ติ๊กขั้นตอนย้อนหลัง
+# ฟังก์ชันกลไก Auto-ติ๊กขั้นตอนย้อนหลัง (เอาเฉพาะติ๊กเดินหน้า)
 def on_step_change(index):
-    # ถ้ามีการติ๊กเลือกขั้นตอนนี้ ให้ติ๊กทุกขั้นตอนก่อนหน้าให้อัตโนมัติ
+    # ถ้ามีการติ๊กเลือกขั้นตอนปัจจุบัน ให้ติ๊กทุกขั้นตอนก่อนหน้าให้อัตโนมัติ
     if st.session_state[f"step_widget_{index}"]:
         for i in range(index + 1):
             st.session_state.current_steps[i] = True
     else:
-        # ถ้าเอาติ๊กออก ให้สลัดติ๊กขั้นตอนที่อยู่หลังมันออกทั้งหมดด้วย
+        # ถ้าเอาติ๊กออก ให้เปลี่ยนสถานะเฉพาะช่องนั้นช่องเดียว ช่องอื่นอยู่เหมือนเดิมตามใจพี่ครับ
         st.session_state.current_steps[index] = False
-        for i in range(index, 7):
-            st.session_state.current_steps[i] = False
 
 # แบ่งคอลัมน์ซ้าย (ฟอร์ม) - ขวา (ตารางระบบค้นหา)
 col1, col2 = st.columns([1, 1.4])
@@ -128,7 +125,7 @@ with col1:
         "7. ต้นสังกัดเซ็นรับตัวจริงและคู่สำเนา เรียบร้อย"
     ]
     
-    # วนลูปสร้าง Checkbox 7 ขั้นตอนแบบผูกฟังก์ชันออโต้คีย์ย้อนหลัง
+    # วนลูปสร้าง Checkbox 7 ขั้นตอน
     for idx, label in enumerate(step_labels):
         st.checkbox(
             label, 
