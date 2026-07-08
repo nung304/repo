@@ -11,7 +11,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # 🔗 1. ลิงก์ยิงฟอร์มหลังบ้านของพี่ (ดึงจาก action ของฟอร์มในภาพของพี่มาให้เรียบร้อยแล้วครับ)
-FORM_URL = "https://docs.google.com/forms/u/0/d/e/1FAIpQLSckbSH3a337W8yknyGAsAw7esyGyEv55lgK8g6qWCv_q2HtgF/formResponse"
+FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSckbSH3a337W8yknYgAsAw7esyGyEv55lgK8g6QWCv_q2HtFg/formResponse"
 
 # 🔑 2. แผนผังรหัสกล่องข้อความที่แกะจากหน้าจอของพี่เป๊ะๆ
 ENTRY_MAP = {
