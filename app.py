@@ -110,4 +110,135 @@ with col1:
     s2 = st.checkbox(step_labels[1], value=default_steps[1])
     s3 = st.checkbox(step_labels[2], value=default_steps[2])
     s4 = st.checkbox(step_labels[3], value=default_steps[3])
-    s5 = st.checkbox(step_labels[4], value=default
+    s5 = st.checkbox(step_labels[4], value=default_steps[4])
+    s6 = st.checkbox(step_labels[5], value=default_steps[5])
+    s7 = st.checkbox(step_labels[6], value=default_steps[6])
+
+    checks = [s1, s2, s3, s4, s5, s6, s7]
+    
+    status_text = "⚪ ยังไม่ได้เริ่ม"
+    if s7:
+        status_text = f"🟢 {step_labels[6]}"
+    else:
+        for idx in range(6, -1, -1):
+            if checks[idx]:
+                status_text = f"🟡 {step_labels[idx]}"
+                break
+
+    btn_label = "💾 อัปเดตข้อมูลและบันทึกลงระบบ" if st.session_state.edit_id else "💾 บันทึกข้อมูลลงระบบ"
+    
+    btn_col1, btn_col2 = st.columns([2, 1])
+    with btn_col1:
+        if st.button(btn_label, type="primary", use_container_width=True):
+            if doc_num and name:
+                form_data = {
+                    ENTRY_MAP["doc"]: doc_num,
+                    ENTRY_MAP["name"]: name,
+                    ENTRY_MAP["dept"]: dept,
+                    ENTRY_MAP["status"]: status_text,
+                    ENTRY_MAP["note"]: note,
+                    ENTRY_MAP["s1"]: str(s1), ENTRY_MAP["s2"]: str(s2), ENTRY_MAP["s3"]: str(s3),
+                    ENTRY_MAP["s4"]: str(s4), ENTRY_MAP["s5"]: str(s5), ENTRY_MAP["s6"]: str(s6), ENTRY_MAP["s7"]: str(s7)
+                }
+                try:
+                    response = requests.post(FORM_URL, data=form_data)
+                    st.session_state.db_dict[str(doc_num)] = {"name": name, "dept": dept, "status": status_text, "note": note, "steps": checks}
+                    st.session_state.edit_id = None
+                    st.success("🎉 บันทึกข้อมูลสำเร็จแล้วครับพี่!")
+                    st.balloons()
+                    st.rerun()
+                except Exception as e:
+                    st.error("❌ เกิดข้อผิดพลาดทางเครือข่าย แต่บันทึกบนหน้าจอชั่วคราวให้แล้วครับ")
+            else:
+                st.error("กรุณากรอกข้อมูลเลขที่หนังสือและชื่อผู้ขอตรวจให้ครบถ้วน")
+                
+    with btn_col2:
+        if st.session_state.edit_id:
+            if st.button("❌ ยกเลิกแก้ไข", use_container_width=True):
+                st.session_state.edit_id = None
+                st.rerun()
+
+# ==================== ฝั่งขวา: ตารางและการค้นหาขั้นสูง ====================
+with col2:
+    st.subheader("📊 ตารางตรวจสอบสถานะปัจจุบัน")
+    
+    # 🔍 โซนค้นหาแบบระบุคอลัมน์ (Advanced Search)
+    st.write("**🔍 ค้นหาข้อมูลขั้นสูง**")
+    search_query = st.text_input("พิมพ์คำที่ต้องการค้นหา (เลขหนังสือ, ชื่อ, หรือสังกัด):", placeholder="พิมพ์ค้นหาที่นี่...").strip()
+    
+    st.write("ติ๊กเลือกคอลัมน์ที่ต้องการค้นหา:")
+    c_search1, c_search2, c_search3 = st.columns(3)
+    with c_search1:
+        search_doc = st.checkbox("เลขที่หนังสือรับ", value=True)
+    with c_search2:
+        search_name = st.checkbox("ชื่อ-สกุล ผู้ขอตรวจ", value=True)
+    with c_search3:
+        search_dept = st.checkbox("หน่วยงานต้นสังกัด", value=False)
+
+    st.write("---")
+    
+    if st.session_state.db_dict:
+        # 1. แปลงข้อมูลดิบเป็น List ของดิคชันนารีเพื่อเอามากรองข้อมูล
+        all_records = []
+        for k, v in st.session_state.db_dict.items():
+            all_records.append({
+                "เลขที่หนังสือรับ": str(k),
+                "ชื่อ-สกุล ผู้ขอตรวจ": str(v["name"]),
+                "หน่วยงานต้นสังกัด": str(v["dept"]),
+                "สถานะปัจจุบัน": str(v["status"]),
+                "หมายเหตุ": str(v["note"])
+            })
+            
+        # 2. กระบวนการกรองข้อมูลตามคำค้นหาและคอลัมน์ที่เลือกติ๊กไว้
+        filtered_records = []
+        if search_query:
+            for r in all_records:
+                match = False
+                if search_doc and search_query in r["เลขที่หนังสือรับ"]:
+                    match = True
+                if search_name and search_query in r["ชื่อ-สกุล ผู้ขอตรวจ"]:
+                    match = True
+                if search_dept and search_query in r["หน่วยงานต้นสังกัด"]:
+                    match = True
+                if match:
+                    filtered_records.append(r)
+        else:
+            filtered_records = all_records
+
+        # 3. แสดงผลตารางพร้อมปุ่มแก้ไขแบบรายบรรทัด (Row-by-Row)
+        if filtered_records:
+            # ส่วนหัวตารางจำลองเพื่อความสวยงามและอ่านง่าย
+            t_col1, t_col2, t_col3, t_col4, t_col5 = st.columns([1.2, 1.5, 1.2, 1.8, 1])
+            with t_col1: st.caption("**เลขหนังสือรับ**")
+            with t_col2: st.caption("**ชื่อ-สกุล**")
+            with t_col3: st.caption("**ต้นสังกัด**")
+            with t_col4: st.caption("**สถานะปัจจุบัน**")
+            with t_col5: st.caption("**จัดการ**")
+            st.write("<div style='margin-top:-10px; margin-bottom:10px; border-bottom:1px solid #ddd;'></div>", unsafe_allow_html=True)
+            
+            # วนลูปสร้างแถวข้อมูลทีละแถว และฝังปุ่มแก้ไขไว้ท้ายแถว
+            for row in filtered_records:
+                r_col1, r_col2, r_col3, r_col4, r_col5 = st.columns([1.2, 1.5, 1.2, 1.8, 1])
+                with r_col1: st.write(row["เลขที่หนังสือรับ"])
+                with r_col2: st.write(row["ชื่อ-สกุล ผู้ขอตรวจ"])
+                with r_col3: st.write(row["หน่วยงานต้นสังกัด"])
+                with r_col4: st.write(row["สถานะปัจจุบัน"])
+                with r_col5:
+                    # ใช้เลขที่หนังสือรับเป็น Key ของปุ่ม เพื่อไม่ให้ซ้ำกันซะเอง
+                    if st.button("✏️ แก้ไข", key=f"edit_btn_{row['เลขที่หนังสือรับ']}", use_container_width=True):
+                        st.session_state.edit_id = row["เลขที่หนังสือรับ"]
+                        st.rerun()
+                # แสดงหมายเหตุในบรรทัดย่อยหากแถวนั้นมีหมายเหตุพิมพ์ไว้
+                if row["หมายเหตุ"]:
+                    st.markdown(f"<p style='color:gray; font-size:13px; margin-left:10px; margin-top:-5px; margin-bottom:12px;'>📌 หมายเหตุ: {row['หมายเหตุ']}</p>", unsafe_allow_html=True)
+                else:
+                    st.write("<div style='margin-bottom:8px;'></div>", unsafe_allow_html=True)
+        else:
+            st.warning("🔍 ไม่พบข้อมูลที่ตรงกับเงื่อนไขการค้นหาของพี่ครับ")
+
+        st.write("---")
+        if st.button("🔄 ดึงข้อมูลเวอร์ชันล่าสุดจาก Google Sheets"):
+            st.session_state.clear()
+            st.rerun()
+    else:
+        st.info("ยังไม่มีข้อมูลในระบบ หรือกำลังเชื่อมต่อฐานข้อมูล...")
