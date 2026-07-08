@@ -10,7 +10,7 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# 🔗 1. ลิงก์ยิงฟอร์มหลังบ้าน (อัปเดตเป็นตัวใหม่ที่พี่ส่งมาเรียบร้อยครับ)
+# 🔗 1. ลิงก์ยิงฟอร์มหลังบ้าน
 FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSckbSH3a337W8yknYgAsAw7esyGyEv55lgK8g6qWCv_q2HtFg/formResponse"
 
 # 🔑 2. แผนผังรหัสกล่องข้อความ Google Form ของพี่
@@ -106,7 +106,7 @@ with col1:
 
     st.write("---")
     
-    # ฟอร์มรับข้อมูล (เปลี่ยนค่าอัตโนมัติเมื่อเลือกจากกล่องค้นหาด้านบน)
+    # ฟอร์มรับข้อมูล
     doc_num = st.text_input("เลขที่หนังสือรับ:", value=default_doc)
     name = st.text_input("ชื่อ-สกุล ผู้ขอตรวจสอบประวัติ:", value=default_name)
     dept = st.text_input("หน่วยงานต้นสังกัด (ที่ส่งมา):", value=default_dept)
@@ -187,4 +187,4 @@ with col2:
             st.session_state.clear()
             st.rerun()
     else:
-        st.info("ยังไม่มีข้อมูลในระบบ
+        st.info("ยังไม่มีข้อมูลในระบบ หรือกำลังเชื่อมต่อฐานข้อมูล...")
