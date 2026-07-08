@@ -214,12 +214,12 @@ with col2:
     # แถวที่ 1: ขั้นตอนที่ 1 และ 2
     d_row1_c1, d_row1_c2 = st.columns(2)
     with d_row1_c1:
-        b1_label = f"📁 ค้าง: {step_labels[0]} \n\n ({counts[0]} เรื่อง)"
+        b1_label = f"📁 ถึงขั้นตอน: {step_labels[0]} \n\n ({counts[0]} เรื่อง)"
         if st.button(b1_label, key="dash_b1", type="primary" if st.session_state.selected_dashboard_step == 0 else "secondary", use_container_width=True):
             st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 0 else 0
             st.rerun()
     with d_row1_c2:
-        b2_label = f"📝 ค้าง: {step_labels[1]} \n\n ({counts[1]} เรื่อง)"
+        b2_label = f"📝 ถึงขั้นตอน: {step_labels[1]} \n\n ({counts[1]} เรื่อง)"
         if st.button(b2_label, key="dash_b2", type="primary" if st.session_state.selected_dashboard_step == 1 else "secondary", use_container_width=True):
             st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 1 else 1
             st.rerun()
@@ -227,12 +227,12 @@ with col2:
     # แถวที่ 2: ขั้นตอนที่ 3 และ 4
     d_row2_c1, d_row2_c2 = st.columns(2)
     with d_row2_c1:
-        b3_label = f"✉️ ค้าง: {step_labels[2]} \n\n ({counts[2]} เรื่อง)"
+        b3_label = f"✉️ ถึงขั้นตอน: {step_labels[2]} \n\n ({counts[2]} เรื่อง)"
         if st.button(b3_label, key="dash_b3", type="primary" if st.session_state.selected_dashboard_step == 2 else "secondary", use_container_width=True):
             st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 2 else 2
             st.rerun()
     with d_row2_c2:
-        b4_label = f"🚔 ค้าง: {step_labels[3]} \n\n ({counts[3]} เรื่อง)"
+        b4_label = f"🚔 ถึงขั้นตอน: {step_labels[3]} \n\n ({counts[3]} เรื่อง)"
         if st.button(b4_label, key="dash_b4", type="primary" if st.session_state.selected_dashboard_step == 3 else "secondary", use_container_width=True):
             st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 3 else 3
             st.rerun()
@@ -240,12 +240,12 @@ with col2:
     # แถวที่ 3: ขั้นตอนที่ 5 และ 6
     d_row3_c1, d_row3_c2 = st.columns(2)
     with d_row3_c1:
-        b5_label = f"🖨️ ค้าง: {step_labels[4]} \n\n ({counts[4]} เรื่อง)"
+        b5_label = f"🖨️ ถึงขั้นตอน: {step_labels[4]} \n\n ({counts[4]} เรื่อง)"
         if st.button(b5_label, key="dash_b5", type="primary" if st.session_state.selected_dashboard_step == 4 else "secondary", use_container_width=True):
             st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 4 else 4
             st.rerun()
     with d_row3_c2:
-        b6_label = f"📤 ค้าง: {step_labels[5]} \n\n ({counts[5]} เรื่อง)"
+        b6_label = f"📤 ถึงขั้นตอน: {step_labels[5]} \n\n ({counts[5]} เรื่อง)"
         if st.button(b6_label, key="dash_b6", type="primary" if st.session_state.selected_dashboard_step == 5 else "secondary", use_container_width=True):
             st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 5 else 5
             st.rerun()
