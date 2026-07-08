@@ -137,7 +137,7 @@ def confirm_delete_dialog(doc_id, name, current_item):
         if st.button("❌ ยกเลิก", use_container_width=True):
             st.rerun()
 
-# ตั้งค่าเริ่มต้นของฟอร์มกรอกข้อมูล
+# ตั้งค่าเริ่มต้นของฟอร์มกรอกข้อมูลตามสัญญากลไกดั้งเดิม
 default_doc, default_name, default_dept, default_note = "", "", "", ""
 loaded_steps = [False] * 7
 
@@ -331,6 +331,7 @@ with col2:
             with row_cols[5]:
                 if st.button("✏️", key=f"edit_btn_{k}", use_container_width=True):
                     st.session_state.edit_id = k
+                    st.session_state.form_key_index += 1  # 🎯 สลับอินเด็กซ์เพื่อรีเซ็ตหน้าฟอร์มให้ข้อมูลเก่าวิ่งเข้ากล่องทันที
                     st.rerun()
             with row_cols[6]:
                 if st.button("🗑️", key=f"del_btn_{k}", use_container_width=True):
