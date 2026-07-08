@@ -126,7 +126,7 @@ def confirm_delete_dialog(doc_id, name, current_item):
                 ENTRY_MAP["s7"]: "False"
             }
             try:
-                requests.post(FORM_URL, data=form_data, timeout=8)
+                requests.post(FORM_URL, data=form_data, timeout=30)
                 if doc_id in st.session_state.db_dict:
                     del st.session_state.db_dict[doc_id]
                 st.session_state["prevent_reloading"] = True
