@@ -29,7 +29,7 @@ ENTRY_MAP = {
     "s7": "entry.1786061219",        # step7
 }
 
-# รายชื่อขั้นตอนทั้งหมด
+# รายชื่อขั้นตอนทั้งหมด (ชื่อเต็ม)
 step_labels = [
     "1. รับหนังสือจากต้นสังกัด",
     "2. กรอกประวัติ พิมพ์ลายนิ้วมือกลิ้งหมึก 2 ชุด",
@@ -117,7 +117,7 @@ def on_step_change(index):
         st.session_state[f"step_widget_{index}"] = False
 
 # แบ่งคอลัมน์ซ้าย (ฟอร์ม) - ขวา (Dashboard & ตาราง)
-col1, col2 = st.columns([1, 1.5])
+col1, col2 = st.columns([1, 1.8])  # ขยายขนาดฝั่งขวาเล็กน้อยเพื่อให้รองรับชื่อปุ่มเต็มๆ ได้สวยขึ้นครับ
 
 # ==================== ฝั่งซ้าย: ฟอร์มกรอกและแก้ไขข้อมูล ====================
 with col1:
@@ -191,7 +191,7 @@ with col1:
                     st.session_state[f"step_widget_{i}"] = False
                 st.rerun()
 
-# ==================== ฝั่งขวา: Dashboard และ ตารางตรวจสอบสถานะ ====================
+# ==================== ฝั่งขวา: Dashboard ชื่อเต็ม และ ตารางตรวจสอบสถานะ ====================
 with col2:
     st.subheader("📊 ระบบติดตามสถานะภาพรวม")
     
@@ -208,51 +208,57 @@ with col2:
                     counts[idx] += 1
                     break
 
-    # 🖥️ 2. แสดงผลหน้าต่าง Dashboard สรุปยอดค้าง (สามารถกดคลิกเพื่อกรองข้อมูลได้)
-    st.write("**📌 กระดานสรุปเรื่องค้าง (คลิกที่ปุ่มเพื่อกรองดูรายชื่อได้ครับ):**")
+    # 🖥️ 2. แสดงผลหน้าต่าง Dashboard แบบชื่อเต็ม (จัดเลย์เอาต์แถวละ 2 กล่องเพื่อให้ตัวหนังสือไม่เบียดกัน)
+    st.write("**📌 กระดานสรุปเรื่องค้าง (คลิกขั้นตอนเพื่อกรองดูรายชื่อ):**")
     
-    # จัดแถวปุ่มกด Dashboard แถวที่ 1 (ข้อ 1 - 4)
-    dash_col1, dash_col2, dash_col3, dash_col4 = st.columns(4)
-    with dash_col1:
-        b1_label = f"📁 ข้อ 1 ค้าง\n\n {counts[0]} เรื่อง"
+    # แถวที่ 1: ขั้นตอนที่ 1 และ 2
+    d_row1_c1, d_row1_c2 = st.columns(2)
+    with d_row1_c1:
+        b1_label = f"📁 ค้าง: {step_labels[0]} \n\n ({counts[0]} เรื่อง)"
         if st.button(b1_label, key="dash_b1", type="primary" if st.session_state.selected_dashboard_step == 0 else "secondary", use_container_width=True):
             st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 0 else 0
             st.rerun()
-    with dash_col2:
-        b2_label = f"📝 ข้อ 2 ค้าง\n\n {counts[1]} เรื่อง"
+    with d_row1_c2:
+        b2_label = f"📝 ค้าง: {step_labels[1]} \n\n ({counts[1]} เรื่อง)"
         if st.button(b2_label, key="dash_b2", type="primary" if st.session_state.selected_dashboard_step == 1 else "secondary", use_container_width=True):
             st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 1 else 1
             st.rerun()
-    with dash_col3:
-        b3_label = f"✉️ ข้อ 3 ค้าง\n\n {counts[2]} เรื่อง"
+
+    # แถวที่ 2: ขั้นตอนที่ 3 และ 4
+    d_row2_c1, d_row2_c2 = st.columns(2)
+    with d_row2_c1:
+        b3_label = f"✉️ ค้าง: {step_labels[2]} \n\n ({counts[2]} เรื่อง)"
         if st.button(b3_label, key="dash_b3", type="primary" if st.session_state.selected_dashboard_step == 2 else "secondary", use_container_width=True):
             st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 2 else 2
             st.rerun()
-    with dash_col4:
-        b4_label = f"🚔 ข้อ 4 ค้าง\n\n {counts[3]} เรื่อง"
+    with d_row2_c2:
+        b4_label = f"🚔 ค้าง: {step_labels[3]} \n\n ({counts[3]} เรื่อง)"
         if st.button(b4_label, key="dash_b4", type="primary" if st.session_state.selected_dashboard_step == 3 else "secondary", use_container_width=True):
             st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 3 else 3
             st.rerun()
 
-    # จัดแถวปุ่มกด Dashboard แถวที่ 2 (ข้อ 5 - 7 และ ยังไม่เริ่ม)
-    dash_col5, dash_col6, dash_col7, dash_col8 = st.columns(4)
-    with dash_col5:
-        b5_label = f"🖨️ ข้อ 5 ค้าง\n\n {counts[4]} เรื่อง"
+    # แถวที่ 3: ขั้นตอนที่ 5 และ 6
+    d_row3_c1, d_row3_c2 = st.columns(2)
+    with d_row3_c1:
+        b5_label = f"🖨️ ค้าง: {step_labels[4]} \n\n ({counts[4]} เรื่อง)"
         if st.button(b5_label, key="dash_b5", type="primary" if st.session_state.selected_dashboard_step == 4 else "secondary", use_container_width=True):
             st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 4 else 4
             st.rerun()
-    with dash_col6:
-        b6_label = f"📤 ข้อ 6 ค้าง\n\n {counts[5]} เรื่อง"
+    with d_row3_c2:
+        b6_label = f"📤 ค้าง: {step_labels[5]} \n\n ({counts[5]} เรื่อง)"
         if st.button(b6_label, key="dash_b6", type="primary" if st.session_state.selected_dashboard_step == 5 else "secondary", use_container_width=True):
             st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 5 else 5
             st.rerun()
-    with dash_col7:
-        b7_label = f"✅ ข้อ 7 เสร็จ\n\n {counts[6]} เรื่อง"
+
+    # แถวที่ 4: ขั้นตอนที่ 7 และ ยังไม่เริ่ม
+    d_row4_c1, d_row4_c2 = st.columns(2)
+    with d_row4_c1:
+        b7_label = f"🟢 เสร็จสิ้น: {step_labels[6]} \n\n ({counts[6]} เรื่อง)"
         if st.button(b7_label, key="dash_b7", type="primary" if st.session_state.selected_dashboard_step == 6 else "secondary", use_container_width=True):
             st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 6 else 6
             st.rerun()
-    with dash_col8:
-        b8_label = f"⚪ ยังไม่เริ่ม\n\n {counts[7]} เรื่อง"
+    with d_row4_c2:
+        b8_label = f"⚪ ยังไม่เริ่มดำเนินการเลย \n\n ({counts[7]} เรื่อง)"
         if st.button(b8_label, key="dash_b8", type="primary" if st.session_state.selected_dashboard_step == 7 else "secondary", use_container_width=True):
             st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 7 else 7
             st.rerun()
@@ -263,7 +269,7 @@ with col2:
     st.write("**🔍 ค้นหาข้อมูลเพิ่มเติม**")
     search_query = st.text_input("พิมพ์คำค้นหาเพิ่มเติม (เลขหนังสือ, ชื่อ, หรือสังกัด):", placeholder="พิมพ์ค้นหาที่นี่...").strip()
     
-    c_search1, c_search2, c_search3, c_clear = st.columns([1, 1, 1, 1])
+    c_search1, c_search2, c_search3, c_clear = st.columns([1, 1, 1, 1.2])
     with c_search1:
         search_doc = st.checkbox("เลขที่หนังสือรับ", value=True)
     with c_search2:
@@ -300,15 +306,13 @@ with col2:
                 "step_index": 7 if "ยังไม่ได้เริ่ม" in v["status"] else next((i for i, x in enumerate(step_labels) if x in v["status"]), None)
             })
             
-        # 4. กระบวนการกรองข้อมูล (ผสมผสานระหว่าง Dashboard และ ช่องพิมพ์ค้นหา)
+        # 4. กระบวนการกรองข้อมูล
         filtered_records = []
         for r in all_records:
-            # กรองขั้นที่ 1: ตรวจสอบเงื่อนไข Dashboard
             if st.session_state.selected_dashboard_step is not None:
                 if r["step_index"] != st.session_state.selected_dashboard_step:
                     continue
             
-            # กรองขั้นที่ 2: ตรวจสอบคำค้นหาในช่องพิมพ์
             if search_query:
                 match = False
                 if search_doc and search_query in r["เลขที่หนังสือรับ"]:
@@ -324,7 +328,7 @@ with col2:
 
         # 5. แสดงผลตารางรายชื่อข้อมูล
         if filtered_records:
-            t_col1, t_col2, t_col3, t_col4, t_col5 = st.columns([1.2, 1.5, 1.2, 1.8, 1])
+            t_col1, t_col2, t_col3, t_col4, t_col5 = st.columns([1.2, 1.5, 1.2, 2.0, 0.8])
             with t_col1: st.caption("**เลขหนังสือรับ**")
             with t_col2: st.caption("**ชื่อ-สกุล**")
             with t_col3: st.caption("**ต้นสังกัด**")
@@ -333,7 +337,7 @@ with col2:
             st.write("<div style='margin-top:-10px; margin-bottom:10px; border-bottom:1px solid #ddd;'></div>", unsafe_allow_html=True)
             
             for row in filtered_records:
-                r_col1, r_col2, r_col3, r_col4, r_col5 = st.columns([1.2, 1.5, 1.2, 1.8, 1])
+                r_col1, r_col2, r_col3, r_col4, r_col5 = st.columns([1.2, 1.5, 1.2, 2.0, 0.8])
                 with r_col1: st.write(row["เลขที่หนังสือรับ"])
                 with r_col2: st.write(row["ชื่อ-สกุล ผู้ขอตรวจ"])
                 with r_col3: st.write(row["หน่วยงานต้นสังกัด"])
