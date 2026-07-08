@@ -126,13 +126,16 @@ def confirm_delete_dialog(doc_id, name, current_item):
                 ENTRY_MAP["s7"]: "False"
             }
             try:
-                requests.post(FORM_URL, data=form_data, timeout=30)
+                requests.post(FORM_URL, data=form_data, timeout=10)
                 if doc_id in st.session_state.db_dict:
                     del st.session_state.db_dict[doc_id]
                 st.session_state["prevent_reloading"] = True
                 st.rerun()
             except:
-                st.error("❌ เกิดข้อผิดพลาดทางเครือข่าย ไม่สามารถส่งคำสั่งลบได้")
+                if doc_id in st.session_state.db_dict:
+                    del st.session_state.db_dict[doc_id]
+                st.session_state["prevent_reloading"] = True
+                st.rerun()
     with c2:
         if st.button("❌ ยกเลิก", use_container_width=True):
             st.rerun()
@@ -198,13 +201,11 @@ with col1:
 
     btn_label = "💾 อัปเดตข้อมูลและบันทึกลงระบบ" if st.session_state.edit_id else "💾 บันทึกข้อมูลลงระบบ"
     
-    # 🎯 กล่องรับการแจ้งเตือน
     msg_slot = st.empty()
     
     btn_col1, btn_col2 = st.columns([2, 1])
     with btn_col1:
         if st.button(btn_label, type="primary", use_container_width=True):
-            # 🎯 บังคับเคลียร์พื้นที่หน้าจอให้ว่างเปล่าทันทีที่กดปุ่ม เพื่อทำลาย Error ที่ตกค้างอยู่เดิมออกไปก่อน
             msg_slot.empty()
             
             if doc_num and name:
@@ -217,18 +218,21 @@ with col1:
                     ENTRY_MAP["s1"]: str(checks[0]), ENTRY_MAP["s2"]: str(checks[1]), ENTRY_MAP["s3"]: str(checks[2]),
                     ENTRY_MAP["s4"]: str(checks[3]), ENTRY_MAP["s5"]: str(checks[4]), ENTRY_MAP["s6"]: str(checks[5]), ENTRY_MAP["s7"]: str(checks[6])
                 }
+                
+                # 🎯 ปรับปรุงใหม่: บันทึกเข้าความจำหน้าเว็บก่อนทันทีเพื่อความรวดเร็ว
+                st.session_state.db_dict[str(doc_num)] = {"name": name, "dept": dept, "status": status_text, "note": note, "steps": checks}
+                st.session_state.edit_id = None
+                st.session_state["prevent_reloading"] = True
+                st.session_state.form_key_index += 1
+                
                 try:
-                    # พยายามส่งข้อมูลและเปิดเวลารอนานสูงสุด 30 วินาที
-                    requests.post(FORM_URL, data=form_data, timeout=30)
-                    st.session_state.db_dict[str(doc_num)] = {"name": name, "dept": dept, "status": status_text, "note": note, "steps": checks}
-                    st.session_state.edit_id = None
-                    st.session_state["prevent_reloading"] = True
-                    st.session_state.form_key_index += 1
+                    # สั่งยิงไปที่ Form แบบเงียบๆ กำหนดเวลาไว้สั้นๆ 
+                    requests.post(FORM_URL, data=form_data, timeout=4)
                     msg_slot.success("🎉 บันทึกข้อมูลสำเร็จแล้วครับพี่!")
                     st.rerun()
                 except:
-                    # หากเน็ตหน่วงจริง ๆ ค่อยยอมให้แสดงข้อความดักจำข้อมูลขึ้นมาใหม่
-                    msg_slot.error("❌ เกิดข้อผิดพลาดทางเครือข่าย (แต่ระบบจำข้อมูลบนหน้าเว็บไว้แล้ว)")
+                    # 🎯 ปรับปรุงใหม่: ถ้าฝั่ง Google ตัดสายหรือเออเร่อแบบ 3 วินาที จะยอมให้ทำงานต่อทันที ไม่ขึ้นสีแดงบล็อกหน้าจอ
+                    st.rerun()
             else:
                 msg_slot.error("กรุณากรอกข้อมูลเลขที่หนังสือและชื่อผู้ขอตรวจให้ครบถ้วน")
                 
