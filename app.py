@@ -66,9 +66,12 @@ if read_url:
 if "edit_id" not in st.session_state:
     st.session_state.edit_id = None
 
+# ใช้ session_state ควบคุมค่าของ Checkbox เพื่อทำระบบ Auto-fill ก่อนหน้า
+if "current_steps" not in st.session_state:
+    st.session_state.current_steps = [False] * 7
+
 # ตั้งค่าเริ่มต้นของฟอร์มกรอกข้อมูล
 default_doc, default_name, default_dept, default_note = "", "", "", ""
-default_steps = [False] * 7
 
 if st.session_state.edit_id and st.session_state.edit_id in st.session_state.db_dict:
     item = st.session_state.db_dict[st.session_state.edit_id]
@@ -76,7 +79,26 @@ if st.session_state.edit_id and st.session_state.edit_id in st.session_state.db_
     default_name = item["name"]
     default_dept = item["dept"]
     default_note = item["note"]
-    default_steps = item["steps"] if len(item["steps"]) == 7 else [False]*7
+    # ปรับค่าตามข้อมูลเก่าที่ดึงมาแก้ไข (ถ้าไม่มีการกดเปลี่ยนบนหน้าจอ)
+    if "last_edit_id" not in st.session_state or st.session_state.last_edit_id != st.session_state.edit_id:
+        st.session_state.current_steps = item["steps"] if len(item["steps"]) == 7 else [False]*7
+        st.session_state.last_edit_id = st.session_state.edit_id
+else:
+    if "last_edit_id" in st.session_state and st.session_state.last_edit_id is not None:
+        st.session_state.current_steps = [False] * 7
+        st.session_state.last_edit_id = None
+
+# ฟังก์ชันกลไก Auto-ติ๊กขั้นตอนย้อนหลัง
+def on_step_change(index):
+    # ถ้ามีการติ๊กเลือกขั้นตอนนี้ ให้ติ๊กทุกขั้นตอนก่อนหน้าให้อัตโนมัติ
+    if st.session_state[f"step_widget_{index}"]:
+        for i in range(index + 1):
+            st.session_state.current_steps[i] = True
+    else:
+        # ถ้าเอาติ๊กออก ให้สลัดติ๊กขั้นตอนที่อยู่หลังมันออกทั้งหมดด้วย
+        st.session_state.current_steps[index] = False
+        for i in range(index, 7):
+            st.session_state.current_steps[i] = False
 
 # แบ่งคอลัมน์ซ้าย (ฟอร์ม) - ขวา (ตารางระบบค้นหา)
 col1, col2 = st.columns([1, 1.4])
@@ -106,18 +128,21 @@ with col1:
         "7. ต้นสังกัดเซ็นรับตัวจริงและคู่สำเนา เรียบร้อย"
     ]
     
-    s1 = st.checkbox(step_labels[0], value=default_steps[0])
-    s2 = st.checkbox(step_labels[1], value=default_steps[1])
-    s3 = st.checkbox(step_labels[2], value=default_steps[2])
-    s4 = st.checkbox(step_labels[3], value=default_steps[3])
-    s5 = st.checkbox(step_labels[4], value=default_steps[4])
-    s6 = st.checkbox(step_labels[5], value=default_steps[5])
-    s7 = st.checkbox(step_labels[6], value=default_steps[6])
+    # วนลูปสร้าง Checkbox 7 ขั้นตอนแบบผูกฟังก์ชันออโต้คีย์ย้อนหลัง
+    for idx, label in enumerate(step_labels):
+        st.checkbox(
+            label, 
+            value=st.session_state.current_steps[idx],
+            key=f"step_widget_{idx}",
+            on_change=on_step_change,
+            args=(idx,)
+        )
 
-    checks = [s1, s2, s3, s4, s5, s6, s7]
+    checks = st.session_state.current_steps
     
+    # คำนวณสถานะข้อความเพื่อส่งเข้า Google Form
     status_text = "⚪ ยังไม่ได้เริ่ม"
-    if s7:
+    if checks[6]:
         status_text = f"🟢 {step_labels[6]}"
     else:
         for idx in range(6, -1, -1):
@@ -137,13 +162,14 @@ with col1:
                     ENTRY_MAP["dept"]: dept,
                     ENTRY_MAP["status"]: status_text,
                     ENTRY_MAP["note"]: note,
-                    ENTRY_MAP["s1"]: str(s1), ENTRY_MAP["s2"]: str(s2), ENTRY_MAP["s3"]: str(s3),
-                    ENTRY_MAP["s4"]: str(s4), ENTRY_MAP["s5"]: str(s5), ENTRY_MAP["s6"]: str(s6), ENTRY_MAP["s7"]: str(s7)
+                    ENTRY_MAP["s1"]: str(checks[0]), ENTRY_MAP["s2"]: str(checks[1]), ENTRY_MAP["s3"]: str(checks[2]),
+                    ENTRY_MAP["s4"]: str(checks[3]), ENTRY_MAP["s5"]: str(checks[4]), ENTRY_MAP["s6"]: str(checks[5]), ENTRY_MAP["s7"]: str(checks[6])
                 }
                 try:
                     response = requests.post(FORM_URL, data=form_data)
                     st.session_state.db_dict[str(doc_num)] = {"name": name, "dept": dept, "status": status_text, "note": note, "steps": checks}
                     st.session_state.edit_id = None
+                    st.session_state.current_steps = [False] * 7
                     st.success("🎉 บันทึกข้อมูลสำเร็จแล้วครับพี่!")
                     st.balloons()
                     st.rerun()
@@ -156,13 +182,13 @@ with col1:
         if st.session_state.edit_id:
             if st.button("❌ ยกเลิกแก้ไข", use_container_width=True):
                 st.session_state.edit_id = None
+                st.session_state.current_steps = [False] * 7
                 st.rerun()
 
 # ==================== ฝั่งขวา: ตารางและการค้นหาขั้นสูง ====================
 with col2:
     st.subheader("📊 ตารางตรวจสอบสถานะปัจจุบัน")
     
-    # 🔍 โซนค้นหาแบบระบุคอลัมน์ (Advanced Search)
     st.write("**🔍 ค้นหาข้อมูลขั้นสูง**")
     search_query = st.text_input("พิมพ์คำที่ต้องการค้นหา (เลขหนังสือ, ชื่อ, หรือสังกัด):", placeholder="พิมพ์ค้นหาที่นี่...").strip()
     
@@ -178,7 +204,6 @@ with col2:
     st.write("---")
     
     if st.session_state.db_dict:
-        # 1. แปลงข้อมูลดิบเป็น List ของดิคชันนารีเพื่อเอามากรองข้อมูล
         all_records = []
         for k, v in st.session_state.db_dict.items():
             all_records.append({
@@ -189,7 +214,6 @@ with col2:
                 "หมายเหตุ": str(v["note"])
             })
             
-        # 2. กระบวนการกรองข้อมูลตามคำค้นหาและคอลัมน์ที่เลือกติ๊กไว้
         filtered_records = []
         if search_query:
             for r in all_records:
@@ -205,9 +229,7 @@ with col2:
         else:
             filtered_records = all_records
 
-        # 3. แสดงผลตารางพร้อมปุ่มแก้ไขแบบรายบรรทัด (Row-by-Row)
         if filtered_records:
-            # ส่วนหัวตารางจำลองเพื่อความสวยงามและอ่านง่าย
             t_col1, t_col2, t_col3, t_col4, t_col5 = st.columns([1.2, 1.5, 1.2, 1.8, 1])
             with t_col1: st.caption("**เลขหนังสือรับ**")
             with t_col2: st.caption("**ชื่อ-สกุล**")
@@ -216,7 +238,6 @@ with col2:
             with t_col5: st.caption("**จัดการ**")
             st.write("<div style='margin-top:-10px; margin-bottom:10px; border-bottom:1px solid #ddd;'></div>", unsafe_allow_html=True)
             
-            # วนลูปสร้างแถวข้อมูลทีละแถว และฝังปุ่มแก้ไขไว้ท้ายแถว
             for row in filtered_records:
                 r_col1, r_col2, r_col3, r_col4, r_col5 = st.columns([1.2, 1.5, 1.2, 1.8, 1])
                 with r_col1: st.write(row["เลขที่หนังสือรับ"])
@@ -224,11 +245,9 @@ with col2:
                 with r_col3: st.write(row["หน่วยงานต้นสังกัด"])
                 with r_col4: st.write(row["สถานะปัจจุบัน"])
                 with r_col5:
-                    # ใช้เลขที่หนังสือรับเป็น Key ของปุ่ม เพื่อไม่ให้ซ้ำกันซะเอง
                     if st.button("✏️ แก้ไข", key=f"edit_btn_{row['เลขที่หนังสือรับ']}", use_container_width=True):
                         st.session_state.edit_id = row["เลขที่หนังสือรับ"]
                         st.rerun()
-                # แสดงหมายเหตุในบรรทัดย่อยหากแถวนั้นมีหมายเหตุพิมพ์ไว้
                 if row["หมายเหตุ"]:
                     st.markdown(f"<p style='color:gray; font-size:13px; margin-left:10px; margin-top:-5px; margin-bottom:12px;'>📌 หมายเหตุ: {row['หมายเหตุ']}</p>", unsafe_allow_html=True)
                 else:
