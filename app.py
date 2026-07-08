@@ -6,7 +6,7 @@ st.set_page_config(page_title="ระบบตรวจประวัติ ส
 
 st.markdown("""
     <div style='background-color:#800000;padding:15px;border-radius:10px;margin-bottom:20px'>
-        <h2 style='color:white;text-align:center;margin:0;'>ระบบฐานข้อมูลและติดตามขั้นตอนการตรวจประวัติพิมพ์ลายนิ้วมือ</h2>
+        <h2 style='color:white;text-align:center;margin:0;'>ระบบฐานข้อมูลและติดตามขั้นตอนการตรวจประวัติ (สภ. ส่ง พฐ.)</h2>
     </div>
 """, unsafe_allow_html=True)
 
@@ -35,7 +35,7 @@ step_labels = [
     "2. กรอกประวัติ พิมพ์ลายนิ้วมือกลิ้งหมึก 2 ชุด",
     "3. ทำหนังสือส่งตรวจ พฐ. ลงลายเซ็นรอง",
     "4. ไปส่ง พฐ. ตรวจที่ ภ.จว. แล้วนำกลับมา",
-    "5. ถ่ายเอกสารผลตรวจ 1 ชุด ไว้ในสำเนาคู่ฉบับ",
+    "5. ถ่ายเอกสารผลตรวจ 1 ชุด ไว้ในสำเนาคู่ฉับ",
     "6. ทำหนังสือส่ง รายงานผลกลับต้นสังกัด (2 ชุด)",
     "7. ต้นสังกัดเซ็นรับตัวจริงและคู่สำเนา เรียบร้อย"
 ]
@@ -55,7 +55,7 @@ read_url = get_sheet_urls()
 if "db_dict" not in st.session_state:
     st.session_state.db_dict = {}
 
-# 🛠️ ใช้ระบบเวอร์ชันคีย์ เพื่อบังคับรีเซ็ตวิดเจ็ตแบบปลอดภัย 100%
+# ใช้ระบบเวอร์ชันคีย์ เพื่อบังคับรีเซ็ตวิดเจ็ตแบบปลอดภัย 100%
 if "form_version" not in st.session_state:
     st.session_state.form_version = 0
 
@@ -87,6 +87,37 @@ if "edit_id" not in st.session_state:
 if "selected_dashboard_step" not in st.session_state:
     st.session_state.selected_dashboard_step = None
 
+# 🔔 4. บล็อกฟังก์ชันสร้าง Popup ยืนยันการทำงาน (Confirmation Dialog)
+@st.dialog("📋 ยืนยันการแก้ไขข้อมูล")
+def confirm_edit_dialog(doc_id, name):
+    st.write(f"คุณต้องการดึงข้อมูลของ **{name}** (เลขที่หนังสือ: {doc_id}) ขึ้นไปแก้ไขบนฟอร์มใช่หรือไม่?")
+    st.write("")
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button("✅ ใช่, ต้องการแก้ไข", type="primary", use_container_width=True):
+            st.session_state.edit_id = doc_id
+            st.rerun()
+    with c2:
+        if st.button("❌ ยกเลิก", use_container_width=True):
+            st.rerun()
+
+@st.dialog("⚠️ ยืนยันการลบข้อมูล")
+def confirm_delete_dialog(doc_id, name):
+    st.write(f"คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลของ **{name}** (เลขที่หนังสือ: {doc_id}) ออกจากระบบชั่วคราว?")
+    st.caption("Note: การลบตรงนี้จะลบออกจากหน้าจอชั่วคราว หากต้องการลบถาวรต้องไปลบแถวใน Google Sheets ครับ")
+    st.write("")
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button("🚨 ยืนยันลบข้อมูล", type="primary", use_container_width=True):
+            if doc_id in st.session_state.db_dict:
+                del st.session_state.db_dict[doc_id]
+            st.session_state["prevent_reloading"] = True
+            st.toast(f"ลบข้อมูลเลขที่ {doc_id} เรียบร้อยแล้ว")
+            st.rerun()
+    with c2:
+        if st.button("❌ ยกเลิก", use_container_width=True):
+            st.rerun()
+
 # ตั้งค่าเริ่มต้นของฟอร์มกรอกข้อมูล
 default_doc, default_name, default_dept, default_note = "", "", "", ""
 loaded_steps = [False] * 7
@@ -99,7 +130,7 @@ if st.session_state.edit_id and st.session_state.edit_id in st.session_state.db_
     default_note = item["note"]
     loaded_steps = item["steps"] if len(item["steps"]) == 7 else [False]*7
 
-# สร้าง/อัปเดตคีย์เช็คบ็อกซ์ตามเวอร์ชันปัจจุบัน (ป้องกันหน้าจอแดง)
+# สร้าง/อัปเดตคีย์เช็คบ็อกซ์ตามเวอร์ชันปัจจุบัน
 for i in range(7):
     widget_key = f"step_widget_{i}_v_{st.session_state.form_version}"
     if widget_key not in st.session_state or (st.session_state.edit_id and st.session_state.get("last_loaded_edit_id") != st.session_state.edit_id):
@@ -179,7 +210,6 @@ with col1:
                     st.session_state.db_dict[str(doc_num)] = {"name": name, "dept": dept, "status": status_text, "note": note, "steps": checks}
                     st.session_state.edit_id = None
                     st.session_state["prevent_reloading"] = True
-                    # อัปเดตเวอร์ชันฟอร์มเพื่อเคลียร์วิดเจ็ตแบบปลอดภัยไร้กังวล
                     st.session_state.form_version += 1
                     st.success("🎉 บันทึกข้อมูลสำเร็จแล้วครับพี่!")
                     st.balloons()
@@ -194,7 +224,6 @@ with col1:
             if st.button("❌ ยกเลิกแก้ไข", use_container_width=True):
                 st.session_state.edit_id = None
                 st.session_state["prevent_reloading"] = True
-                # เปลี่ยนเวอร์ชันฟอร์มเพื่อรีเซ็ตหน้าจอโดยไม่ติดขัดระบบหลังบ้าน
                 st.session_state.form_version += 1
                 st.rerun()
 
@@ -202,7 +231,6 @@ with col1:
 with col2:
     st.subheader("📊 ระบบติดตามสถานะภาพรวม")
     
-    # 🧮 1. คำนวณสถิติเรื่องในแต่ละข้อ
     counts = [0] * 8  
     for k, v in st.session_state.db_dict.items():
         v_status = v["status"]
@@ -214,10 +242,9 @@ with col2:
                     counts[idx] += 1
                     break
 
-    # 🖥️ 2. แดชบอร์ดแบบชื่อเต็ม แถวละ 2 กล่อง
     st.write("**📌 กระดานสรุปสถานะปัจจุบัน (คลิกขั้นตอนเพื่อกรองดูรายชื่อ):**")
     
-    # แถวที่ 1: ข้อ 1 และ 2
+    # แถวที่ 1
     d_row1_c1, d_row1_c2 = st.columns(2)
     with d_row1_c1:
         b1_label = f"📁 ทำถึงขั้นตอน: {step_labels[0]} \n\n ({counts[0]} เรื่อง)"
@@ -230,7 +257,7 @@ with col2:
             st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 1 else 1
             st.rerun()
 
-    # แถวที่ 2: ข้อ 3 และ 4
+    # แถวที่ 2
     d_row2_c1, d_row2_c2 = st.columns(2)
     with d_row2_c1:
         b3_label = f"✉️ ทำถึงขั้นตอน: {step_labels[2]} \n\n ({counts[2]} เรื่อง)"
@@ -243,7 +270,7 @@ with col2:
             st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 3 else 3
             st.rerun()
 
-    # แถวที่ 3: ข้อ 5 และ 6
+    # แถวที่ 3
     d_row3_c1, d_row3_c2 = st.columns(2)
     with d_row3_c1:
         b5_label = f"🖨️ ทำถึงขั้นตอน: {step_labels[4]} \n\n ({counts[4]} เรื่อง)"
@@ -256,7 +283,7 @@ with col2:
             st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 5 else 5
             st.rerun()
 
-    # แถวที่ 4: ข้อ 7 และ ยังไม่เริ่ม
+    # แถวที่ 4
     d_row4_c1, d_row4_c2 = st.columns(2)
     with d_row4_c1:
         b7_label = f"🟢 เสร็จสิ้น: {step_labels[6]} \n\n ({counts[6]} เรื่อง)"
@@ -271,17 +298,14 @@ with col2:
 
     st.write("---")
 
-    # 🔍 3. ช่องค้นหาข้อมูลเพิ่มเติม
+    # 🔍 ช่องค้นหา
     st.write("**🔍 ค้นหาข้อมูลเพิ่มเติม**")
     search_query = st.text_input("พิมพ์คำค้นหาเพิ่มเติม (เลขหนังสือ, ชื่อ, หรือสังกัด):", placeholder="พิมพ์ค้นหาที่นี่...", key="search_query_input").strip()
     
     c_search1, c_search2, c_search3, c_clear = st.columns([1, 1, 1, 1.2])
-    with c_search1:
-        search_doc = st.checkbox("เลขที่หนังสือรับ", value=True, key="search_doc_check")
-    with c_search2:
-        search_name = st.checkbox("ชื่อ-สกุล ผู้ขอตรวจ", value=True, key="search_name_check")
-    with c_search3:
-        search_dept = st.checkbox("หน่วยงานต้นสังกัด", value=False, key="search_dept_check")
+    with c_search1: search_doc = st.checkbox("เลขที่หนังสือรับ", value=True, key="search_doc_check")
+    with c_search2: search_name = st.checkbox("ชื่อ-สกุล ผู้ขอตรวจ", value=True, key="search_name_check")
+    with c_search3: search_dept = st.checkbox("หน่วยงานต้นสังกัด", value=False, key="search_dept_check")
     with c_clear:
         if st.session_state.selected_dashboard_step is not None:
             if st.button("❌ ล้างตัวกรอง Dashboard", use_container_width=True):
@@ -315,40 +339,40 @@ with col2:
             if st.session_state.selected_dashboard_step is not None:
                 if r["step_index"] != st.session_state.selected_dashboard_step:
                     continue
-            
             if search_query:
                 match = False
-                if search_doc and search_query in r["เลขที่หนังสือรับ"]:
-                    match = True
-                if search_name and search_query in r["ชื่อ-สกุล ผู้ขอตรวจ"]:
-                    match = True
-                if search_dept and search_query in r["หน่วยงานต้นสังกัด"]:
-                    match = True
-                if not match:
-                    continue
-                    
+                if search_doc and search_query in r["เลขที่หนังสือรับ"]: match = True
+                if search_name and search_query in r["ชื่อ-สกุล ผู้ขอตรวจ"]: match = True
+                if search_dept and search_query in r["หน่วยงานต้นสังกัด"]: match = True
+                if not match: continue
             filtered_records.append(r)
 
-        # 5. แสดงผลตารางรายชื่อข้อมูล
+        # 5. แสดงผลตารางรายชื่อข้อมูล (ปรับสัดส่วนคอลัมน์เพื่อรองรับปุ่ม ลบ)
         if filtered_records:
-            t_col1, t_col2, t_col3, t_col4, t_col5 = st.columns([1.2, 1.5, 1.2, 2.0, 0.8])
+            t_col1, t_col2, t_col3, t_col4, t_col5 = st.columns([1.1, 1.4, 1.1, 1.8, 1.2])
             with t_col1: st.caption("**เลขหนังสือรับ**")
             with t_col2: st.caption("**ชื่อ-สกุล**")
             with t_col3: st.caption("**ต้นสังกัด**")
             with t_col4: st.caption("**สถานะปัจจุบัน**")
-            with t_col5: st.caption("**จัดการ**")
+            with t_col5: st.caption("**การจัดการข้อมูล**")
             st.write("<div style='margin-top:-10px; margin-bottom:10px; border-bottom:1px solid #ddd;'></div>", unsafe_allow_html=True)
             
             for row in filtered_records:
-                r_col1, r_col2, r_col3, r_col4, r_col5 = st.columns([1.2, 1.5, 1.2, 2.0, 0.8])
+                r_col1, r_col2, r_col3, r_col4, r_col5 = st.columns([1.1, 1.4, 1.1, 1.8, 1.2])
                 with r_col1: st.write(row["เลขที่หนังสือรับ"])
                 with r_col2: st.write(row["ชื่อ-สกุล ผู้ขอตรวจ"])
                 with r_col3: st.write(row["หน่วยงานต้นสังกัด"])
                 with r_col4: st.write(row["สถานะปัจจุบัน"])
                 with r_col5:
-                    if st.button("✏️ แก้ไข", key=f"edit_btn_{row['เลขที่หนังสือรับ']}", use_container_width=True):
-                        st.session_state.edit_id = row["เลขที่หนังสือรับ"]
-                        st.rerun()
+                    # แบ่งเป็น 2 ปุ่มย่อยข้างกัน: แก้ไข และ ลบ
+                    action_c1, action_c2 = st.columns(2)
+                    with action_c1:
+                        if st.button("✏️ แก้ไข", key=f"edit_btn_{row['เลขที่หนังสือรับ']}", use_container_width=True):
+                            confirm_edit_dialog(row["เลขที่หนังสือรับ"], row["ชื่อ-สกุล ผู้ขอตรวจ"])
+                    with action_c2:
+                        if st.button("🗑️ ลบ", key=f"del_btn_{row['เลขที่หนังสือรับ']}", use_container_width=True):
+                            confirm_delete_dialog(row["เลขที่หนังสือรับ"], row["ชื่อ-สกุล ผู้ขอตรวจ"])
+                            
                 if row["หมายเหตุ"]:
                     st.markdown(f"<p style='color:gray; font-size:13px; margin-left:10px; margin-top:-5px; margin-bottom:12px;'>📌 หมายเหตุ: {row['หมายเหตุ']}</p>", unsafe_allow_html=True)
                 else:
