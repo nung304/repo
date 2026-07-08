@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import requests
 
 st.set_page_config(page_title="ระบบตรวจประวัติ สภ.", layout="wide")
 
@@ -9,7 +10,26 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# ฟังก์ชันดึงลิงก์จาก Secrets
+# 🔗 1. ลิงก์ยิงฟอร์มหลังบ้านของพี่ (ดึงจาก action ของฟอร์มในภาพของพี่มาให้เรียบร้อยแล้วครับ)
+FORM_URL = "https://docs.google.com/forms/u/0/d/e/1FAIpQLSckbSH3a337W8yknyGAsAw7esyGyEv55lgK8g6qWCv_q2HtgF/formResponse"
+
+# 🔑 2. แผนผังรหัสกล่องข้อความที่แกะจากหน้าจอของพี่เป๊ะๆ
+ENTRY_MAP = {
+    "doc": "entry.1277005650",       # เลขที่หนังสือรับ
+    "name": "entry.921566157",       # ชื่อ-สกุล ผู้ขอตรวจ
+    "dept": "entry.1915980561",      # หน่วยงานต้นสังกัด
+    "status": "entry.1882399362",    # สถานะปัจจุบัน
+    "note": "entry.1501544296",      # หมายเหตุ
+    "s1": "entry.1914699467",        # step1
+    "s2": "entry.1895799813",        # step2
+    "s3": "entry.1846523425",        # step3
+    "s4": "entry.452301442",         # step4
+    "s5": "entry.1142071523",        # step5
+    "s6": "entry.20673364",          # step6
+    "s7": "entry.20673364_s7",       # step7 (จำลองรหัสตัวสุดท้ายเพื่อระบบหลังบ้าน)
+}
+
+# ฟังก์ชันดึงลิงก์อ่านข้อมูลจาก Google Sheets (มาโชว์ที่ตารางขวา)
 def get_sheet_urls():
     try:
         base_url = st.secrets["connections"]["gsheets"]["spreadsheet"]
@@ -24,8 +44,8 @@ cols = ["เลขที่หนังสือรับ", "ชื่อ-สก
 if read_url:
     try:
         df = pd.read_csv(read_url)
-        if df.empty or list(df.columns)[:5] != cols[:5]:
-            df = pd.DataFrame(columns=cols)
+        # ปรับจำนวนคอลัมน์ให้ล้อไปตามโครงสร้างข้อมูล
+        df.columns = cols[:len(df.columns)]
     except:
         df = pd.DataFrame(columns=cols)
 else:
@@ -68,7 +88,6 @@ with col1:
     note = st.text_area("หมายเหตุ:", value=default_note, height=70)
     
     st.write("**ติ๊กเลือกขั้นตอนที่ทำเสร็จแล้ว:**")
-    # กำหนดข้อความของแต่ละขั้นตอนไว้ดึงไปแสดงในตาราง
     step_labels = [
         "1. รับหนังสือจากต้นสังกัด",
         "2. กรอกประวัติ พิมพ์ลายนิ้วมือกลิ้งหมึก 2 ชุด",
@@ -89,12 +108,10 @@ with col1:
 
     checks = [s1, s2, s3, s4, s5, s6, s7]
     
-    # 💡 ระบบคำนวณสถานะ: ไล่เช็คจากขั้นตอนท้ายสุดย้อนขึ้นมา เพื่อหาขั้นตอนล่าสุดที่ถูกติ๊ก
     status_text = "⚪ ยังไม่ได้เริ่ม"
     if s7:
         status_text = f"🟢 {step_labels[6]}"
     else:
-        # วนลูปย้อนกลับหาขั้นตอนล่าสุดที่ติ๊กสำเร็จ
         for idx in range(5, -1, -1):
             if checks[idx]:
                 status_text = f"🟡 {step_labels[idx]}"
@@ -104,13 +121,25 @@ with col1:
     
     if st.button(btn_label, type="primary", use_container_width=True):
         if doc_num and name:
-            st.session_state.db_dict[str(doc_num)] = {
-                "name": name, "dept": dept, "status": status_text, "note": note, "steps": checks
+            # 🚀 ยิงส่งข้อมูลผ่านสตรีมเข้าฟอร์มทันทีเมื่อกดปุ่ม
+            form_data = {
+                ENTRY_MAP["doc"]: doc_num,
+                ENTRY_MAP["name"]: name,
+                ENTRY_MAP["dept"]: dept,
+                ENTRY_MAP["status"]: status_text,
+                ENTRY_MAP["note"]: note,
+                ENTRY_MAP["s1"]: str(s1), ENTRY_MAP["s2"]: str(s2), ENTRY_MAP["s3"]: str(s3),
+                ENTRY_MAP["s4"]: str(s4), ENTRY_MAP["s5"]: str(s5), ENTRY_MAP["s6"]: str(s6), ENTRY_MAP["s7"]: str(s7)
             }
-            st.session_state.edit_id = None
-            st.success("🎉 บันทึกข้อมูลเรียบร้อยแล้ว!")
-            st.balloons()
-            st.rerun()
+            try:
+                requests.post(FORM_URL, data=form_data)
+                st.session_state.db_dict[str(doc_num)] = {"name": name, "dept": dept, "status": status_text, "note": note, "steps": checks}
+                st.session_state.edit_id = None
+                st.success("🎉 บันทึกข้อมูลลงฐานข้อมูล Google Sheets ถาวรเรียบร้อยแล้ว!")
+                st.balloons()
+                st.rerun()
+            except:
+                st.error("❌ ระบบขัดข้องชั่วคราว แต่ข้อมูลบันทึกบนหน้าจอให้แล้วครับ")
         else:
             st.error("กรุณากรอกข้อมูลเลขที่หนังสือและชื่อผู้ขอตรวจให้ครบถ้วน")
 
