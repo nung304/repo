@@ -10,10 +10,10 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# 🔗 1. ลิงก์ยิงฟอร์มหลังบ้านของพี่ (ดึงจาก action ของฟอร์มในภาพของพี่มาให้เรียบร้อยแล้วครับ)
+# 🔗 1. ลิงก์ยิงฟอร์มหลังบ้านของพี่ จากรูป action ในระบบ
 FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSckbSH3a337W8yknYgAsAw7esyGyEv55lgK8g6QWCv_q2HtFg/formResponse"
 
-# 🔑 2. แผนผังรหัสกล่องข้อความที่แกะจากหน้าจอของพี่เป๊ะๆ
+# 🔑 2. แผนผังรหัสกล่องข้อความจากภาพถ่ายตรวจสอบหน้าจอของพี่
 ENTRY_MAP = {
     "doc": "entry.1277005650",       # เลขที่หนังสือรับ
     "name": "entry.921566157",       # ชื่อ-สกุล ผู้ขอตรวจ
@@ -26,43 +26,44 @@ ENTRY_MAP = {
     "s4": "entry.452301442",         # step4
     "s5": "entry.1142071523",        # step5
     "s6": "entry.20673364",          # step6
-    "s7": "entry.20673364_s7",       # step7 (จำลองรหัสตัวสุดท้ายเพื่อระบบหลังบ้าน)
+    "s7": "entry.20673364_s7",       # step7 (จำลองเนื่องจากพฐ.มี 6 ข้อในโค้ดเก่า)
 }
 
-# ฟังก์ชันดึงลิงก์อ่านข้อมูลจาก Google Sheets (มาโชว์ที่ตารางขวา)
+# 🔄 3. ฟังก์ชันดึงลิงก์อ่านข้อมูลโดยตรงผ่านสิทธิ์แชร์ "ทุกคนที่มีลิงก์"
 def get_sheet_urls():
     try:
         base_url = st.secrets["connections"]["gsheets"]["spreadsheet"]
         sheet_id = base_url.split("/d/")[1].split("/edit")[0] if "/edit" in base_url else base_url.split("/d/")[1].split("/")[0]
+        # เจาะจงดึงข้อมูลจากแท็บแรกที่มีข้อมูลการตอบกลับจากฟอร์มมาแสดงผล
         return f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv"
     except:
         return None
 
 read_url = get_sheet_urls()
-cols = ["เลขที่หนังสือรับ", "ชื่อ-สกุล ผู้ขอตรวจ", "หน่วยงานต้นสังกัด", "สถานะปัจจุบัน", "หมายเหตุ", "step1", "step2", "step3", "step4", "step5", "step6", "step7"]
 
+# ตัวแปรเก็บฐานข้อมูลชั่วคราวบนหน้าจอหลัก
+if "db_dict" not in st.session_state:
+    st.session_state.db_dict = {}
+
+# ดึงข้อมูลจาก Sheets มาอัปเดตลงตารางขวา
 if read_url:
     try:
         df = pd.read_csv(read_url)
-        # ปรับจำนวนคอลัมน์ให้ล้อไปตามโครงสร้างข้อมูล
-        df.columns = cols[:len(df.columns)]
+        if not df.empty:
+            for _, row in df.iterrows():
+                # ตรวจเช็กจำนวนคอลัมน์เพื่อความชัวร์ (ปกติคอลัมน์แรกคือ Timestamp ของ Form)
+                if len(row) >= 6:
+                    k = str(row.iloc[1]).strip()
+                    if k and k != "nan" and k != "":
+                        st.session_state.db_dict[k] = {
+                            "name": str(row.iloc[2]) if pd.notna(row.iloc[2]) else "",
+                            "dept": str(row.iloc[3]) if pd.notna(row.iloc[3]) else "",
+                            "status": str(row.iloc[4]) if pd.notna(row.iloc[4]) else "⚪ ยังไม่ได้เริ่ม",
+                            "note": str(row.iloc[5]) if pd.notna(row.iloc[5]) else "",
+                            "steps": [bool(row.iloc[i]) if i < len(row) and pd.notna(row.iloc[i]) else False for i in range(6, 13)]
+                        }
     except:
-        df = pd.DataFrame(columns=cols)
-else:
-    df = pd.DataFrame(columns=cols)
-
-if "db_dict" not in st.session_state:
-    st.session_state.db_dict = {}
-    if not df.empty:
-        for _, row in df.iterrows():
-            k = str(row["เลขที่หนังสือรับ"])
-            st.session_state.db_dict[k] = {
-                "name": str(row["ชื่อ-สกุล ผู้ขอตรวจ"]),
-                "dept": str(row["หน่วยงานต้นสังกัด"]) if pd.notna(row["หน่วยงานต้นสังกัด"]) else "",
-                "status": str(row["สถานะปัจจุบัน"]),
-                "note": str(row["หมายเหตุ"]) if pd.notna(row["หมายเหตุ"]) else "",
-                "steps": [bool(row.get(f"step{i+1}", False)) for i in range(7)]
-            }
+        pass
 
 if "edit_id" not in st.session_state:
     st.session_state.edit_id = None
@@ -76,7 +77,7 @@ if st.session_state.edit_id and st.session_state.edit_id in st.session_state.db_
     default_name = item["name"]
     default_dept = item["dept"]
     default_note = item["note"]
-    default_steps = item["steps"]
+    default_steps = item["steps"] if len(item["steps"]) == 7 else [False]*7
 
 col1, col2 = st.columns([1, 1.3])
 
@@ -121,7 +122,6 @@ with col1:
     
     if st.button(btn_label, type="primary", use_container_width=True):
         if doc_num and name:
-            # 🚀 ยิงส่งข้อมูลผ่านสตรีมเข้าฟอร์มทันทีเมื่อกดปุ่ม
             form_data = {
                 ENTRY_MAP["doc"]: doc_num,
                 ENTRY_MAP["name"]: name,
@@ -132,14 +132,17 @@ with col1:
                 ENTRY_MAP["s4"]: str(s4), ENTRY_MAP["s5"]: str(s5), ENTRY_MAP["s6"]: str(s6), ENTRY_MAP["s7"]: str(s7)
             }
             try:
-                requests.post(FORM_URL, data=form_data)
+                # ส่งเข้า Google ฟอร์มตรงๆ ไม่ต้องผ่าน Service Account
+                response = requests.post(FORM_URL, data=form_data)
+                
+                # บันทึกเข้าความจำหน้าจอทันทีเพื่อความเร็ว
                 st.session_state.db_dict[str(doc_num)] = {"name": name, "dept": dept, "status": status_text, "note": note, "steps": checks}
                 st.session_state.edit_id = None
-                st.success("🎉 บันทึกข้อมูลลงฐานข้อมูล Google Sheets ถาวรเรียบร้อยแล้ว!")
+                st.success("🎉 บันทึกข้อมูลเข้า Google Sheets สำเร็จเรียบร้อยแล้วครับพี่!")
                 st.balloons()
                 st.rerun()
-            except:
-                st.error("❌ ระบบขัดข้องชั่วคราว แต่ข้อมูลบันทึกบนหน้าจอให้แล้วครับ")
+            except Exception as e:
+                st.error("❌ เกิดข้อผิดพลาดทางเครือข่าย แต่บันทึกบนหน้าจอชั่วคราวให้แล้วครับ")
         else:
             st.error("กรุณากรอกข้อมูลเลขที่หนังสือและชื่อผู้ขอตรวจให้ครบถ้วน")
 
@@ -152,28 +155,18 @@ with col2:
     if st.session_state.db_dict:
         records = []
         for k, v in st.session_state.db_dict.items():
-            records.append({"เลขที่หนังสือรับ": k, "ชื่อ-สกุล ผู้ขอตรวจ": v["name"], "หน่วยงานต้นสังกัด": v["dept"], "สถานะปัจจุบัน": v["status"], "หมายเหตุ": v["note"]})
+            records.append({
+                "เลขที่หนังสือรับ": k, 
+                "ชื่อ-สกุล ผู้ขอตรวจ": v["name"], 
+                "หน่วยงานต้นสังกัด": v["dept"], 
+                "สถานะปัจจุบัน": v["status"], 
+                "หมายเหตุ": v["note"]
+            })
         st.dataframe(pd.DataFrame(records), use_container_width=True, hide_index=True)
         
         st.write("---")
-        st.write("**⚙️ เครื่องมือจัดการข้อมูล:**")
-        select_doc = st.selectbox("เลือกเลขที่หนังสือรับที่ต้องการจัดการ:", ["-- เลือกรายการ --"] + list(st.session_state.db_dict.keys()))
-        
-        if select_doc != "-- เลือกรายการ --":
-            c_edit, c_del = st.columns(2)
-            with c_edit:
-                if st.button("✏️ ดึงข้อมูลไปแก้ไข", use_container_width=True):
-                    st.session_state.edit_id = select_doc
-                    st.rerun()
-            with c_del:
-                if st.button("🗑️ ลบข้อมูลเคสนี้", use_container_width=True):
-                    if select_doc in st.session_state.db_dict: del st.session_state.db_dict[select_doc]
-                    if st.session_state.edit_id == select_doc: st.session_state.edit_id = None
-                    st.success("ลบข้อมูลเรียบร้อยแล้ว")
-                    st.rerun()
-                    
-        if st.button("🔄 ดึงข้อมูลอัปเดตจาก Google Sheets ใหม่"):
+        if st.button("🔄 ดึงข้อมูลเวอร์ชันล่าสุดจาก Google Sheets"):
             st.session_state.clear()
             st.rerun()
     else:
-        st.info("ยังไม่มีข้อมูลในระบบ หรือกำลังดึงข้อมูลจาก Google Sheets...")
+        st.info("ยังไม่มีข้อมูลในระบบ หรือกำลังเชื่อมต่อฐานข้อมูล...")
