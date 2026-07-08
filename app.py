@@ -51,7 +51,7 @@ step_labels = [
     "2. กรอกประวัติ พิมพ์ลายนิ้วมือกลิ้งหมึก 2 ชุด",
     "3. ทำหนังสือส่งตรวจ พฐ. ลงลายเซ็นรอง",
     "4. ไปส่ง พฐ. ตรวจที่ ภ.จว. แล้วนำกลับมา",
-    "5. ถ่ายเอกสารผลตรวจ 1 ชุด ไว้ในสำเนาคู่ฉบับ",
+    "5. ถ่ายเอกสารผลตรวจ 1 ชุด ไว้ในสำเนาคู่ฉับ",
     "6. ทำหนังสือส่ง รายงานผลกลับต้นสังกัด (2 ชุด)",
     "7. ต้นสังกัดเซ็นรับตัวจริงและคู่สำเนา เรียบร้อย"
 ]
@@ -137,7 +137,7 @@ def confirm_delete_dialog(doc_id, name, current_item):
         if st.button("❌ ยกเลิก", use_container_width=True):
             st.rerun()
 
-# ตั้งค่าเริ่มต้นของฟอร์มกรอกข้อมูลตามสัญญากลไกดั้งเดิม
+# ตั้งค่าเริ่มต้นของฟอร์มกรอกข้อมูล
 default_doc, default_name, default_dept, default_note = "", "", "", ""
 loaded_steps = [False] * 7
 
@@ -185,7 +185,7 @@ with col1:
             value=loaded_steps[idx],
             key=f"step_idx_{idx}_{st.session_state.form_key_index}",
             on_change=on_step_change,
-            args=(idx Diligently,)
+            args=(idx,)
         )
 
     checks = [st.session_state.get(f"step_idx_{i}_{st.session_state.form_key_index}", False) for i in range(7)]
@@ -298,9 +298,8 @@ with col2:
     st.write("---")
     st.write("**📋 ตารางตรวจสอบสถานะปัจจุบัน**")
     
-    # 🛠️ โครงสร้างตารางหลักดั้งเดิมของพี่ พร้อม CSS ตัวช่วยสไลด์หน้าจอมือถือแนวนอน
+    # โครงสร้างตารางหลักดั้งเดิม
     if st.session_state.db_dict:
-        # ส่วนหัวตารางดั้งเดิม
         header_cols = st.columns([1, 1.2, 1, 2, 1.2, 0.7, 0.7])
         with header_cols[0]: st.markdown("**เลขหนังสือ**")
         with header_cols[1]: st.markdown("**ชื่อ-สกุล**")
@@ -322,7 +321,6 @@ with col2:
             if search_query and (search_query not in str(k) and search_query not in str(v["name"]) and search_query not in str(v["dept"])):
                 continue
                 
-            # สร้างแถวข้อมูลเรียงแบบเดิมเป๊ะๆ ปลอดภัยต่อระบบ 100%
             row_cols = st.columns([1, 1.2, 1, 2, 1.2, 0.7, 0.7])
             with row_cols[0]: st.write(k)
             with row_cols[1]: st.write(v["name"])
