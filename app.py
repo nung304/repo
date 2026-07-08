@@ -216,7 +216,7 @@ with col1:
                 }
                 try:
                     # ส่งข้อมูลและกำหนดเวลา Timeout ป้องกันอาการค้าง
-                    requests.post(FORM_URL, data=form_data, timeout=8)
+                    requests.post(FORM_URL, data=form_data, timeout=30)
                     st.session_state.db_dict[str(doc_num)] = {"name": name, "dept": dept, "status": status_text, "note": note, "steps": checks}
                     st.session_state.edit_id = None
                     st.session_state["prevent_reloading"] = True
