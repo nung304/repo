@@ -86,14 +86,11 @@ if read_url and not st.session_state.get("prevent_reloading", False):
             for _, row in df.iterrows():
                 if len(row) >= 6:
                     k = str(row.iloc[1]).strip()
-                    current_status = str(row.iloc[4]) if pd.notna(row.iloc[4]) else "⚪ ยังไม่ได้เริ่ม"
-                    current_note = str(row.iloc[5]) if pd.notna(row.iloc[5]) else ""
-                    
-                    # 🎯 ดักเช็ก: ถ้าในตาราง Sheets ช่องหมายเหตุมีคำว่า "ลบแล้ว" จะกรองทิ้งทันที ไม่เอามาโชว์บนหน้าเว็บ
-                    if "ลบแล้ว" in current_note or "❌ ลบข้อมูลแล้ว" in current_status:
-                        continue
-                        
                     if k and k != "nan" and k != "":
+                        current_status = str(row.iloc[4]) if pd.notna(row.iloc[4]) else "⚪ ยังไม่ได้เริ่ม"
+                        current_note = str(row.iloc[5]) if pd.notna(row.iloc[5]) else ""
+                        
+                        # 🎯 ไม่อ่านข้ามทันที เพื่อยอมให้บรรทัดใหม่มาเขียนทับสถานะเดิมใน Dictionary ก่อน
                         new_db[k] = {
                             "name": str(row.iloc[2]) if pd.notna(row.iloc[2]) else "",
                             "dept": str(row.iloc[3]) if pd.notna(row.iloc[3]) else "",
@@ -101,7 +98,15 @@ if read_url and not st.session_state.get("prevent_reloading", False):
                             "note": current_note,
                             "steps": [bool(row.iloc[i]) if i < len(row) and pd.notna(row.iloc[i]) else False for i in range(6, 13)]
                         }
-            st.session_state.db_dict = new_db
+            
+            # 🎯 หลังจากได้ข้อมูลล่าสุดที่บรรทัดใหม่ทับบรรทัดเก่าเรียบร้อยแล้ว ค่อยทำการคัดกรอง "ลบแล้ว" ออกไปจากสารบบหน้าจอ
+            filtered_db = {}
+            for key, val in new_db.items():
+                if "ลบแล้ว" in val["note"] or "❌ ลบข้อมูลแล้ว" in val["status"]:
+                    continue  # ถ้าพบลบแล้ว ไม่ดึงเข้าแสดงผลหน้าเว็บ
+                filtered_db[key] = val
+                
+            st.session_state.db_dict = filtered_db
     except:
         pass
 
@@ -116,29 +121,28 @@ def confirm_delete_dialog(doc_id, name, current_item):
     c1, c2 = st.columns(2)
     with c1:
         if st.button("🚨 ยืนยันลบข้อมูล", type="primary", use_container_width=True):
-            # 🎯 แก้ไขตามสั่ง: นำคำว่า "ลบแล้ว" ไปต่อท้ายในช่องหมายเหตุเดิมที่มีอยู่
             orig_note = current_item["note"].strip()
+            # ตัดคำว่า "ลบแล้ว" ซ้ำซ้อนออก ป้องกันการเบิ้ลข้อความ
+            orig_note = orig_note.replace("ลบแล้ว", "").strip()
             new_note_val = f"{orig_note} ลบแล้ว" if orig_note else "ลบแล้ว"
             
             form_data = {
                 ENTRY_MAP["doc"]: doc_id,
                 ENTRY_MAP["name"]: name,
                 ENTRY_MAP["dept"]: current_item["dept"],
-                ENTRY_MAP["status"]: current_item["status"],  # ใช้สถานะเดิมไว้
-                ENTRY_MAP["note"]: new_note_val,             # 🎯 ส่งหมายเหตุที่มีคำว่า "ลบแล้ว" นำทางไป
+                ENTRY_MAP["status"]: current_item["status"],  
+                ENTRY_MAP["note"]: new_note_val,             
                 ENTRY_MAP["s1"]: str(current_item["steps"][0]), ENTRY_MAP["s2"]: str(current_item["steps"][1]),
                 ENTRY_MAP["s3"]: str(current_item["steps"][2]), ENTRY_MAP["s4"]: str(current_item["steps"][3]),
                 ENTRY_MAP["s5"]: str(current_item["steps"][4]), ENTRY_MAP["s6"]: str(current_item["steps"][5]),
                 ENTRY_MAP["s7"]: str(current_item["steps"][6])
             }
             
-            # บังคับลบออกจากหน่วยความจำความจำหน้าเว็บทันที
             if doc_id in st.session_state.db_dict:
                 del st.session_state.db_dict[doc_id]
             st.session_state["prevent_reloading"] = True
             
             try:
-                # ยิงไปอัปเดตช่องหมายเหตุบน Google Form แบบกำหนดเวลาสั้นๆ
                 requests.post(FORM_URL, data=form_data, timeout=4)
                 st.rerun()
             except:
@@ -324,7 +328,6 @@ with col2:
         st.write("<div style='border-bottom: 2px solid #800000; margin-bottom: 8px;'></div>", unsafe_allow_html=True)
 
         for k, v in st.session_state.db_dict.items():
-            # 🎯 ดักเช็กเพิ่มความปลอดภัยที่ส่วนการแสดงผลรายตัว: ถ้ามีคำว่า "ลบแล้ว" ข้ามทันที
             if "ลบแล้ว" in v["note"] or "❌ ลบข้อมูลแล้ว" in v["status"]:
                 continue
                 
