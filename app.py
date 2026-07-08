@@ -35,7 +35,7 @@ step_labels = [
     "2. กรอกประวัติ พิมพ์ลายนิ้วมือกลิ้งหมึก 2 ชุด",
     "3. ทำหนังสือส่งตรวจ พฐ. ลงลายเซ็นรอง",
     "4. ไปส่ง พฐ. ตรวจที่ ภ.จว. แล้วนำกลับมา",
-    "5. ถ่ายเอกสารผลตรวจ 1 ชุด ไว้ในสำเนาคู่ฉับ",
+    "5. ถ่ายเอกสารผลตรวจ 1 ชุด ไว้ในสำเนาคู่ฉบับ",
     "6. ทำหนังสือส่ง รายงานผลกลับต้นสังกัด (2 ชุด)",
     "7. ต้นสังกัดเซ็นรับตัวจริงและคู่สำเนา เรียบร้อย"
 ]
@@ -54,6 +54,10 @@ read_url = get_sheet_urls()
 # ตัวแปรเก็บฐานข้อมูลในความจำหน้าจอ
 if "db_dict" not in st.session_state:
     st.session_state.db_dict = {}
+
+# 🛠️ ใช้ระบบเวอร์ชันคีย์ เพื่อบังคับรีเซ็ตวิดเจ็ตแบบปลอดภัย 100%
+if "form_version" not in st.session_state:
+    st.session_state.form_version = 0
 
 # ดึงข้อมูลจาก Sheets มาอัปเดตลงตาราง
 if read_url and not st.session_state.get("prevent_reloading", False):
@@ -95,9 +99,9 @@ if st.session_state.edit_id and st.session_state.edit_id in st.session_state.db_
     default_note = item["note"]
     loaded_steps = item["steps"] if len(item["steps"]) == 7 else [False]*7
 
-# กำหนดพารามิเตอร์เช็คบ็อกซ์แบบปลอดภัย
+# สร้าง/อัปเดตคีย์เช็คบ็อกซ์ตามเวอร์ชันปัจจุบัน (ป้องกันหน้าจอแดง)
 for i in range(7):
-    widget_key = f"step_widget_{i}"
+    widget_key = f"step_widget_{i}_v_{st.session_state.form_version}"
     if widget_key not in st.session_state or (st.session_state.edit_id and st.session_state.get("last_loaded_edit_id") != st.session_state.edit_id):
         st.session_state[widget_key] = loaded_steps[i]
 
@@ -108,14 +112,14 @@ else:
         st.session_state["last_loaded_edit_id"] = None
 
 # ฟังก์ชันกลไก Auto-Check เดินหน้าแบบปลอดภัย
-def on_step_change(index):
-    widget_key = f"step_widget_{index}"
+def on_step_change(index, version):
+    widget_key = f"step_widget_{index}_v_{version}"
     if st.session_state[widget_key]:
         for i in range(index + 1):
-            st.session_state[f"step_widget_{i}"] = True
+            st.session_state[f"step_widget_{i}_v_{version}"] = True
     else:
         for i in range(index, 7):
-            st.session_state[f"step_widget_{i}"] = False
+            st.session_state[f"step_widget_{i}_v_{version}"] = False
 
 # แบ่งคอลัมน์ซ้าย (ฟอร์ม) - ขวา (Dashboard & ตาราง)
 col1, col2 = st.columns([1, 1.8])
@@ -129,22 +133,22 @@ with col1:
     else:
         st.info("➕ กำลังเพิ่มข้อมูลรายใหม่")
 
-    doc_num = st.text_input("เลขที่หนังสือรับ:", value=default_doc)
-    name = st.text_input("ชื่อ-สกุล ผู้ขอตรวจสอบประวัติ:", value=default_name)
-    dept = st.text_input("หน่วยงานต้นสังกัด (ที่ส่งมา):", value=default_dept)
-    note = st.text_area("หมายเหตุ:", value=default_note, height=70)
+    doc_num = st.text_input("เลขที่หนังสือรับ:", value=default_doc, key=f"doc_num_input_{st.session_state.form_version}")
+    name = st.text_input("ชื่อ-สกุล ผู้ขอตรวจสอบประวัติ:", value=default_name, key=f"name_input_{st.session_state.form_version}")
+    dept = st.text_input("หน่วยงานต้นสังกัด (ที่ส่งมา):", value=default_dept, key=f"dept_input_{st.session_state.form_version}")
+    note = st.text_area("หมายเหตุ:", value=default_note, height=70, key=f"note_input_{st.session_state.form_version}")
     
     st.write("**ติ๊กเลือกขั้นตอนที่ทำเสร็จแล้ว:**")
     
     for idx, label in enumerate(step_labels):
         st.checkbox(
             label,
-            key=f"step_widget_{idx}",
+            key=f"step_widget_{idx}_v_{st.session_state.form_version}",
             on_change=on_step_change,
-            args=(idx,)
+            args=(idx, st.session_state.form_version)
         )
 
-    checks = [st.session_state[f"step_widget_{i}"] for i in range(7)]
+    checks = [st.session_state[f"step_widget_{i}_v_{st.session_state.form_version}"] for i in range(7)]
     
     status_text = "⚪ ยังไม่ได้เริ่ม"
     if checks[6]:
@@ -175,8 +179,8 @@ with col1:
                     st.session_state.db_dict[str(doc_num)] = {"name": name, "dept": dept, "status": status_text, "note": note, "steps": checks}
                     st.session_state.edit_id = None
                     st.session_state["prevent_reloading"] = True
-                    for i in range(7):
-                        st.session_state[f"step_widget_{i}"] = False
+                    # อัปเดตเวอร์ชันฟอร์มเพื่อเคลียร์วิดเจ็ตแบบปลอดภัยไร้กังวล
+                    st.session_state.form_version += 1
                     st.success("🎉 บันทึกข้อมูลสำเร็จแล้วครับพี่!")
                     st.balloons()
                     st.rerun()
@@ -190,15 +194,15 @@ with col1:
             if st.button("❌ ยกเลิกแก้ไข", use_container_width=True):
                 st.session_state.edit_id = None
                 st.session_state["prevent_reloading"] = True
-                for i in range(7):
-                    st.session_state[f"step_widget_{i}"] = False
+                # เปลี่ยนเวอร์ชันฟอร์มเพื่อรีเซ็ตหน้าจอโดยไม่ติดขัดระบบหลังบ้าน
+                st.session_state.form_version += 1
                 st.rerun()
 
 # ==================== ฝั่งขวา: Dashboard และ ตารางตรวจสอบสถานะ ====================
 with col2:
     st.subheader("📊 ระบบติดตามสถานะภาพรวม")
     
-    # 🧮 1. คำนวณสถิติเรื่องค้างในแต่ละข้อ
+    # 🧮 1. คำนวณสถิติเรื่องในแต่ละข้อ
     counts = [0] * 8  
     for k, v in st.session_state.db_dict.items():
         v_status = v["status"]
@@ -210,7 +214,7 @@ with col2:
                     counts[idx] += 1
                     break
 
-    # 🖥️ 2. แดชบอร์ดปรับข้อความใหม่เป็น "ทำถึงขั้นตอน"
+    # 🖥️ 2. แดชบอร์ดแบบชื่อเต็ม แถวละ 2 กล่อง
     st.write("**📌 กระดานสรุปสถานะปัจจุบัน (คลิกขั้นตอนเพื่อกรองดูรายชื่อ):**")
     
     # แถวที่ 1: ข้อ 1 และ 2
@@ -269,15 +273,15 @@ with col2:
 
     # 🔍 3. ช่องค้นหาข้อมูลเพิ่มเติม
     st.write("**🔍 ค้นหาข้อมูลเพิ่มเติม**")
-    search_query = st.text_input("พิมพ์คำค้นหาเพิ่มเติม (เลขหนังสือ, ชื่อ, หรือสังกัด):", placeholder="พิมพ์ค้นหาที่นี่...").strip()
+    search_query = st.text_input("พิมพ์คำค้นหาเพิ่มเติม (เลขหนังสือ, ชื่อ, หรือสังกัด):", placeholder="พิมพ์ค้นหาที่นี่...", key="search_query_input").strip()
     
     c_search1, c_search2, c_search3, c_clear = st.columns([1, 1, 1, 1.2])
     with c_search1:
-        search_doc = st.checkbox("เลขที่หนังสือรับ", value=True)
+        search_doc = st.checkbox("เลขที่หนังสือรับ", value=True, key="search_doc_check")
     with c_search2:
-        search_name = st.checkbox("ชื่อ-สกุล ผู้ขอตรวจ", value=True)
+        search_name = st.checkbox("ชื่อ-สกุล ผู้ขอตรวจ", value=True, key="search_name_check")
     with c_search3:
-        search_dept = st.checkbox("หน่วยงานต้นสังกัด", value=False)
+        search_dept = st.checkbox("หน่วยงานต้นสังกัด", value=False, key="search_dept_check")
     with c_clear:
         if st.session_state.selected_dashboard_step is not None:
             if st.button("❌ ล้างตัวกรอง Dashboard", use_container_width=True):
