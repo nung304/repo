@@ -125,16 +125,18 @@ def confirm_delete_dialog(doc_id, name, current_item):
                 ENTRY_MAP["s5"]: "False", ENTRY_MAP["s6"]: "False",
                 ENTRY_MAP["s7"]: "False"
             }
+            
+            # 🎯 แก้ไขใหม่: บังคับลบข้อมูลออกจากหน่วยความจำของหน้าจอตัวหลักไว้รอทันที ไม่ว่าจะส่งผ่านหรือไม่ผ่าน
+            if doc_id in st.session_state.db_dict:
+                del st.session_state.db_dict[doc_id]
+            st.session_state["prevent_reloading"] = True
+            
             try:
-                requests.post(FORM_URL, data=form_data, timeout=10)
-                if doc_id in st.session_state.db_dict:
-                    del st.session_state.db_dict[doc_id]
-                st.session_state["prevent_reloading"] = True
+                # ยิงคำสั่งเงียบๆ ไปบันทึกหลังบ้าน Google Form
+                requests.post(FORM_URL, data=form_data, timeout=4)
                 st.rerun()
             except:
-                if doc_id in st.session_state.db_dict:
-                    del st.session_state.db_dict[doc_id]
-                st.session_state["prevent_reloading"] = True
+                # 🎯 แก้ไขใหม่: ถึงแม้เน็ตหลุดหรือ Google หน่วงตอนลบ ก็สั่งให้หน้าจอยอมรีรันผ่านไปเลย ข้อมูลหน้าตารางจะไม่โผล่กลับมา
                 st.rerun()
     with c2:
         if st.button("❌ ยกเลิก", use_container_width=True):
@@ -219,19 +221,16 @@ with col1:
                     ENTRY_MAP["s4"]: str(checks[3]), ENTRY_MAP["s5"]: str(checks[4]), ENTRY_MAP["s6"]: str(checks[5]), ENTRY_MAP["s7"]: str(checks[6])
                 }
                 
-                # 🎯 ปรับปรุงใหม่: บันทึกเข้าความจำหน้าเว็บก่อนทันทีเพื่อความรวดเร็ว
                 st.session_state.db_dict[str(doc_num)] = {"name": name, "dept": dept, "status": status_text, "note": note, "steps": checks}
                 st.session_state.edit_id = None
                 st.session_state["prevent_reloading"] = True
                 st.session_state.form_key_index += 1
                 
                 try:
-                    # สั่งยิงไปที่ Form แบบเงียบๆ กำหนดเวลาไว้สั้นๆ 
                     requests.post(FORM_URL, data=form_data, timeout=4)
                     msg_slot.success("🎉 บันทึกข้อมูลสำเร็จแล้วครับพี่!")
                     st.rerun()
                 except:
-                    # 🎯 ปรับปรุงใหม่: ถ้าฝั่ง Google ตัดสายหรือเออเร่อแบบ 3 วินาที จะยอมให้ทำงานต่อทันที ไม่ขึ้นสีแดงบล็อกหน้าจอ
                     st.rerun()
             else:
                 msg_slot.error("กรุณากรอกข้อมูลเลขที่หนังสือและชื่อผู้ขอตรวจให้ครบถ้วน")
