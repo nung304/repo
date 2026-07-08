@@ -66,12 +66,9 @@ if read_url:
 if "edit_id" not in st.session_state:
     st.session_state.edit_id = None
 
-# ใช้ session_state ควบคุมค่าของ Checkbox
-if "current_steps" not in st.session_state:
-    st.session_state.current_steps = [False] * 7
-
 # ตั้งค่าเริ่มต้นของฟอร์มกรอกข้อมูล
 default_doc, default_name, default_dept, default_note = "", "", "", ""
+loaded_steps = [False] * 7
 
 if st.session_state.edit_id and st.session_state.edit_id in st.session_state.db_dict:
     item = st.session_state.db_dict[st.session_state.edit_id]
@@ -79,23 +76,31 @@ if st.session_state.edit_id and st.session_state.edit_id in st.session_state.db_
     default_name = item["name"]
     default_dept = item["dept"]
     default_note = item["note"]
-    if "last_edit_id" not in st.session_state or st.session_state.last_edit_id != st.session_state.edit_id:
-        st.session_state.current_steps = item["steps"] if len(item["steps"]) == 7 else [False]*7
-        st.session_state.last_edit_id = st.session_state.edit_id
-else:
-    if "last_edit_id" in st.session_state and st.session_state.last_edit_id is not None:
-        st.session_state.current_steps = [False] * 7
-        st.session_state.last_edit_id = None
+    loaded_steps = item["steps"] if len(item["steps"]) == 7 else [False]*7
 
-# ฟังก์ชันกลไก Auto-ติ๊กขั้นตอนย้อนหลัง (เอาเฉพาะติ๊กเดินหน้า)
+# เตรียมค่าตั้งต้นลงในตัวแปรประจำปุ่ม Checkbox (สร้างและอัปเดตสถานะคงค้าง)
+for i in range(7):
+    widget_key = f"step_widget_{i}"
+    if widget_key not in st.session_state:
+        st.session_state[widget_key] = loaded_steps[i]
+    # กรณีที่มีการกดปุ่มแก้ไข ให้บังคับรีเซ็ตค่าตามรายการที่ดึงมาใหม่
+    if st.session_state.edit_id and ("last_edit_id" not in st.session_state or st.session_state.last_edit_id != st.session_state.edit_id):
+        st.session_state[widget_key] = loaded_steps[i]
+
+if st.session_state.edit_id:
+    st.session_state.last_edit_id = st.session_state.edit_id
+else:
+    if "last_edit_id" in st.session_state:
+        del st.session_state["last_edit_id"]
+
+# ฟังก์ชันคำนวณ Auto-Check เดินหน้าแบบบังคับหน้าจอเปลี่ยนสีทันที
 def on_step_change(index):
-    # ถ้ามีการติ๊กเลือกขั้นตอนปัจจุบัน ให้ติ๊กทุกขั้นตอนก่อนหน้าให้อัตโนมัติ
-    if st.session_state[f"step_widget_{index}"]:
+    widget_key = f"step_widget_{index}"
+    # ถ้าช่องนี้โดนติ๊กถูก
+    if st.session_state[widget_key]:
+        # บังคับสั่งติ๊กถูกให้กับช่องก่อนหน้ามันทั้งหมด ตั้งแต่ข้อ 1 ถึงข้อปัจจุบัน
         for i in range(index + 1):
-            st.session_state.current_steps[i] = True
-    else:
-        # ถ้าเอาติ๊กออก ให้เปลี่ยนสถานะเฉพาะช่องนั้นช่องเดียว ช่องอื่นอยู่เหมือนเดิมตามใจพี่ครับ
-        st.session_state.current_steps[index] = False
+            st.session_state[f"step_widget_{i}"] = True
 
 # แบ่งคอลัมน์ซ้าย (ฟอร์ม) - ขวา (ตารางระบบค้นหา)
 col1, col2 = st.columns([1, 1.4])
@@ -125,19 +130,19 @@ with col1:
         "7. ต้นสังกัดเซ็นรับตัวจริงและคู่สำเนา เรียบร้อย"
     ]
     
-    # วนลูปสร้าง Checkbox 7 ขั้นตอน
+    # วนลูปสร้าง Checkbox ทั้ง 7 ช่อง
     for idx, label in enumerate(step_labels):
         st.checkbox(
-            label, 
-            value=st.session_state.current_steps[idx],
+            label,
             key=f"step_widget_{idx}",
             on_change=on_step_change,
             args=(idx,)
         )
 
-    checks = st.session_state.current_steps
+    # ดึงค่าล่าสุดหลังจากฟังก์ชันคำนวณเสร็จสิ้น
+    checks = [st.session_state[f"step_widget_{i}"] for i in range(7)]
     
-    # คำนวณสถานะข้อความเพื่อส่งเข้า Google Form
+    # คำนวณหาชื่อข้อความสถานะล่าสุด
     status_text = "⚪ ยังไม่ได้เริ่ม"
     if checks[6]:
         status_text = f"🟢 {step_labels[6]}"
@@ -166,7 +171,9 @@ with col1:
                     response = requests.post(FORM_URL, data=form_data)
                     st.session_state.db_dict[str(doc_num)] = {"name": name, "dept": dept, "status": status_text, "note": note, "steps": checks}
                     st.session_state.edit_id = None
-                    st.session_state.current_steps = [False] * 7
+                    # ล้างค่าหน้าจอให้กลับเป็นว่างหลังบันทึกสำเร็จ
+                    for i in range(7):
+                        st.session_state[f"step_widget_{i}"] = False
                     st.success("🎉 บันทึกข้อมูลสำเร็จแล้วครับพี่!")
                     st.balloons()
                     st.rerun()
@@ -179,7 +186,8 @@ with col1:
         if st.session_state.edit_id:
             if st.button("❌ ยกเลิกแก้ไข", use_container_width=True):
                 st.session_state.edit_id = None
-                st.session_state.current_steps = [False] * 7
+                for i in range(7):
+                    st.session_state[f"step_widget_{i}"] = False
                 st.rerun()
 
 # ==================== ฝั่งขวา: ตารางและการค้นหาขั้นสูง ====================
@@ -244,6 +252,10 @@ with col2:
                 with r_col5:
                     if st.button("✏️ แก้ไข", key=f"edit_btn_{row['เลขที่หนังสือรับ']}", use_container_width=True):
                         st.session_state.edit_id = row["เลขที่หนังสือรับ"]
+                        # ล้างค่าใน widget ของเก่าออกเพื่อให้ระบบโหลดข้อมูลใหม่เข้าปุ่มได้ถูกต้อง
+                        for i in range(7):
+                            if f"step_widget_{i}" in st.session_state:
+                                del st.session_state[f"step_widget_{i}"]
                         st.rerun()
                 if row["หมายเหตุ"]:
                     st.markdown(f"<p style='color:gray; font-size:13px; margin-left:10px; margin-top:-5px; margin-bottom:12px;'>📌 หมายเหตุ: {row['หมายเหตุ']}</p>", unsafe_allow_html=True)
