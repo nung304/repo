@@ -6,7 +6,7 @@ st.set_page_config(page_title="ระบบตรวจประวัติ ส
 
 st.markdown("""
     <div style='background-color:#800000;padding:15px;border-radius:10px;margin-bottom:20px'>
-        <h2 style='color:white;text-align:center;margin:0;'>ระบบฐานข้อมูลและติดตามขั้นตอนการตรวจประวัติ (สภ. ส่ง พฐ.)</h2>
+        <h2 style='color:white;text-align:center;margin:0;'>ระบบฐานข้อมูลและติดตามขั้นตอนการตรวจประวัติพิมพ์ลายนิ้วมือ</h2>
     </div>
 """, unsafe_allow_html=True)
 
