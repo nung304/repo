@@ -67,49 +67,49 @@ def get_sheet_urls():
 
 read_url = get_sheet_urls()
 
-# ตัวแปรเก็บฐานข้อมูลในความจำหน้าจอ
+# Initialize Session States
 if "db_dict" not in st.session_state:
     st.session_state.db_dict = {}
+if "edit_id" not in st.session_state:
+    st.session_state.edit_id = None
+if "selected_dashboard_step" not in st.session_state:
+    st.session_state.selected_dashboard_step = None
+if "form_key_index" not in st.session_state:
+    st.session_state.form_key_index = 0
 
 # ดึงข้อมูลจาก Sheets มาอัปเดตลงตาราง
 if read_url and not st.session_state.get("prevent_reloading", False):
     try:
         df = pd.read_csv(read_url)
         if not df.empty:
+            new_db = {}
             for _, row in df.iterrows():
                 if len(row) >= 6:
                     k = str(row.iloc[1]).strip()
                     current_status = str(row.iloc[4]) if pd.notna(row.iloc[4]) else "⚪ ยังไม่ได้เริ่ม"
                     
                     if "❌ ลบข้อมูลแล้ว" in current_status:
-                        if k in st.session_state.db_dict:
-                            del st.session_state.db_dict[k]
                         continue
                         
                     if k and k != "nan" and k != "":
-                        st.session_state.db_dict[k] = {
+                        new_db[k] = {
                             "name": str(row.iloc[2]) if pd.notna(row.iloc[2]) else "",
                             "dept": str(row.iloc[3]) if pd.notna(row.iloc[3]) else "",
                             "status": current_status,
                             "note": str(row.iloc[5]) if pd.notna(row.iloc[5]) else "",
                             "steps": [bool(row.iloc[i]) if i < len(row) and pd.notna(row.iloc[i]) else False for i in range(6, 13)]
                         }
+            st.session_state.db_dict = new_db
     except:
         pass
 
 st.session_state["prevent_reloading"] = False
 
-if "edit_id" not in st.session_state:
-    st.session_state.edit_id = None
-
-if "selected_dashboard_step" not in st.session_state:
-    st.session_state.selected_dashboard_step = None
-
 # บล็อกป็อปอัพแจ้งเตือนการลบข้อมูล
 @st.dialog("⚠️ ยืนยันการลบข้อมูลถาวรบนหน้าจอ")
 def confirm_delete_dialog(doc_id, name, current_item):
     st.write(f"คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลของ **{name}** (เลขที่หนังสือ: {doc_id}) ออกจากระบบหน้าเว็บ?")
-    st.error("🚨 เมื่อกดยืนยัน ระบบจะอัปเดตสถานะการลบไปหลังบ้าน และรายชื่อนี้จะไม่ฟื้นกลับมาอีกแม้จะกดรีเฟรช")
+    st.error("🚨 เมื่อกดยืนยัน ระบบจะอัปเดตสถานะการลบไปหลังบ้าน")
     st.write("")
     c1, c2 = st.columns(2)
     with c1:
@@ -127,12 +127,12 @@ def confirm_delete_dialog(doc_id, name, current_item):
             }
             try:
                 requests.post(FORM_URL, data=form_data, timeout=8)
+                if doc_id in st.session_state.db_dict:
+                    del st.session_state.db_dict[doc_id]
+                st.session_state["prevent_reloading"] = True
+                st.rerun()
             except:
-                pass
-            if doc_id in st.session_state.db_dict:
-                del st.session_state.db_dict[doc_id]
-            st.session_state["prevent_reloading"] = True
-            st.rerun()
+                st.error("❌ เกิดข้อผิดพลาดทางเครือข่าย ไม่สามารถส่งคำสั่งลบได้")
     with c2:
         if st.button("❌ ยกเลิก", use_container_width=True):
             st.rerun()
@@ -149,9 +149,6 @@ if st.session_state.edit_id and st.session_state.edit_id in st.session_state.db_
     default_note = item["note"]
     loaded_steps = item["steps"] if len(item["steps"]) == 7 else [False]*7
 
-if "form_key_index" not in st.session_state:
-    st.session_state.form_key_index = 0
-
 def on_step_change(index):
     w_key = f"step_idx_{index}_{st.session_state.form_key_index}"
     if st.session_state.get(w_key, False):
@@ -163,7 +160,7 @@ def on_step_change(index):
 
 col1, col2 = st.columns([1, 1.8])
 
-# ==================== ฝั่งซ้าย: ฟอร์มกรอกและแก้ไขข้อมูล (ดั้งเดิม) ====================
+# ==================== ฝั่งซ้าย: ฟอร์มกรอกและแก้ไขข้อมูล ====================
 with col1:
     st.subheader("📝 บันทึก / แก้ไขข้อมูล")
     
@@ -215,7 +212,7 @@ with col1:
                     ENTRY_MAP["s4"]: str(checks[3]), ENTRY_MAP["s5"]: str(checks[4]), ENTRY_MAP["s6"]: str(checks[5]), ENTRY_MAP["s7"]: str(checks[6])
                 }
                 try:
-                    requests.post(FORM_URL, data=form_data)
+                    requests.post(FORM_URL, data=form_data, timeout=8)
                     st.session_state.db_dict[str(doc_num)] = {"name": name, "dept": dept, "status": status_text, "note": note, "steps": checks}
                     st.session_state.edit_id = None
                     st.session_state["prevent_reloading"] = True
@@ -235,7 +232,7 @@ with col1:
                 st.session_state.form_key_index += 1
                 st.rerun()
 
-# ==================== ฝั่งขวา: แดชบอร์ดปุ่มกดและโครงสร้างตารางข้อมูล (ดั้งเดิม) ====================
+# ==================== ฝั่งขวา: แดชบอร์ดปุ่มกดและโครงสร้างตารางข้อมูล ====================
 with col2:
     st.subheader("📊 ระบบติดตามสถานะภาพรวม")
     
@@ -298,7 +295,6 @@ with col2:
     st.write("---")
     st.write("**📋 ตารางตรวจสอบสถานะปัจจุบัน**")
     
-    # โครงสร้างตารางหลักดั้งเดิม
     if st.session_state.db_dict:
         header_cols = st.columns([1, 1.2, 1, 2, 1.2, 0.7, 0.7])
         with header_cols[0]: st.markdown("**เลขหนังสือ**")
@@ -331,7 +327,7 @@ with col2:
             with row_cols[5]:
                 if st.button("✏️", key=f"edit_btn_{k}", use_container_width=True):
                     st.session_state.edit_id = k
-                    st.session_state.form_key_index += 1  # 🎯 สลับอินเด็กซ์เพื่อรีเซ็ตหน้าฟอร์มให้ข้อมูลเก่าวิ่งเข้ากล่องทันที
+                    st.session_state.form_key_index += 1  
                     st.rerun()
             with row_cols[6]:
                 if st.button("🗑️", key=f"del_btn_{k}", use_container_width=True):
