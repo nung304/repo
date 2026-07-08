@@ -87,8 +87,10 @@ if read_url and not st.session_state.get("prevent_reloading", False):
                 if len(row) >= 6:
                     k = str(row.iloc[1]).strip()
                     current_status = str(row.iloc[4]) if pd.notna(row.iloc[4]) else "⚪ ยังไม่ได้เริ่ม"
+                    current_note = str(row.iloc[5]) if pd.notna(row.iloc[5]) else ""
                     
-                    if "❌ ลบข้อมูลแล้ว" in current_status:
+                    # 🎯 ดักเช็ก: ถ้าในตาราง Sheets ช่องหมายเหตุมีคำว่า "ลบแล้ว" จะกรองทิ้งทันที ไม่เอามาโชว์บนหน้าเว็บ
+                    if "ลบแล้ว" in current_note or "❌ ลบข้อมูลแล้ว" in current_status:
                         continue
                         
                     if k and k != "nan" and k != "":
@@ -96,7 +98,7 @@ if read_url and not st.session_state.get("prevent_reloading", False):
                             "name": str(row.iloc[2]) if pd.notna(row.iloc[2]) else "",
                             "dept": str(row.iloc[3]) if pd.notna(row.iloc[3]) else "",
                             "status": current_status,
-                            "note": str(row.iloc[5]) if pd.notna(row.iloc[5]) else "",
+                            "note": current_note,
                             "steps": [bool(row.iloc[i]) if i < len(row) and pd.notna(row.iloc[i]) else False for i in range(6, 13)]
                         }
             st.session_state.db_dict = new_db
@@ -109,34 +111,37 @@ st.session_state["prevent_reloading"] = False
 @st.dialog("⚠️ ยืนยันการลบข้อมูลถาวรบนหน้าจอ")
 def confirm_delete_dialog(doc_id, name, current_item):
     st.write(f"คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลของ **{name}** (เลขที่หนังสือ: {doc_id}) ออกจากระบบหน้าเว็บ?")
-    st.error("🚨 เมื่อกดยืนยัน ระบบจะอัปเดตสถานะการลบไปหลังบ้าน")
+    st.error("🚨 เมื่อกดยืนยัน ระบบจะเขียนคำว่า 'ลบแล้ว' ลงในช่องหมายเหตุส่งไปหลังบ้าน")
     st.write("")
     c1, c2 = st.columns(2)
     with c1:
         if st.button("🚨 ยืนยันลบข้อมูล", type="primary", use_container_width=True):
+            # 🎯 แก้ไขตามสั่ง: นำคำว่า "ลบแล้ว" ไปต่อท้ายในช่องหมายเหตุเดิมที่มีอยู่
+            orig_note = current_item["note"].strip()
+            new_note_val = f"{orig_note} ลบแล้ว" if orig_note else "ลบแล้ว"
+            
             form_data = {
                 ENTRY_MAP["doc"]: doc_id,
                 ENTRY_MAP["name"]: name,
                 ENTRY_MAP["dept"]: current_item["dept"],
-                ENTRY_MAP["status"]: "❌ ลบข้อมูลแล้ว",
-                ENTRY_MAP["note"]: current_item["note"],
-                ENTRY_MAP["s1"]: "False", ENTRY_MAP["s2"]: "False",
-                ENTRY_MAP["s3"]: "False", ENTRY_MAP["s4"]: "False",
-                ENTRY_MAP["s5"]: "False", ENTRY_MAP["s6"]: "False",
-                ENTRY_MAP["s7"]: "False"
+                ENTRY_MAP["status"]: current_item["status"],  # ใช้สถานะเดิมไว้
+                ENTRY_MAP["note"]: new_note_val,             # 🎯 ส่งหมายเหตุที่มีคำว่า "ลบแล้ว" นำทางไป
+                ENTRY_MAP["s1"]: str(current_item["steps"][0]), ENTRY_MAP["s2"]: str(current_item["steps"][1]),
+                ENTRY_MAP["s3"]: str(current_item["steps"][2]), ENTRY_MAP["s4"]: str(current_item["steps"][3]),
+                ENTRY_MAP["s5"]: str(current_item["steps"][4]), ENTRY_MAP["s6"]: str(current_item["steps"][5]),
+                ENTRY_MAP["s7"]: str(current_item["steps"][6])
             }
             
-            # 🎯 แก้ไขใหม่: บังคับลบข้อมูลออกจากหน่วยความจำของหน้าจอตัวหลักไว้รอทันที ไม่ว่าจะส่งผ่านหรือไม่ผ่าน
+            # บังคับลบออกจากหน่วยความจำความจำหน้าเว็บทันที
             if doc_id in st.session_state.db_dict:
                 del st.session_state.db_dict[doc_id]
             st.session_state["prevent_reloading"] = True
             
             try:
-                # ยิงคำสั่งเงียบๆ ไปบันทึกหลังบ้าน Google Form
+                # ยิงไปอัปเดตช่องหมายเหตุบน Google Form แบบกำหนดเวลาสั้นๆ
                 requests.post(FORM_URL, data=form_data, timeout=4)
                 st.rerun()
             except:
-                # 🎯 แก้ไขใหม่: ถึงแม้เน็ตหลุดหรือ Google หน่วงตอนลบ ก็สั่งให้หน้าจอยอมรีรันผ่านไปเลย ข้อมูลหน้าตารางจะไม่โผล่กลับมา
                 st.rerun()
     with c2:
         if st.button("❌ ยกเลิก", use_container_width=True):
@@ -250,7 +255,8 @@ with col2:
     counts = [0] * 8  
     for k, v in st.session_state.db_dict.items():
         v_status = v["status"]
-        if "❌ ลบข้อมูลแล้ว" in v_status:
+        v_note = v["note"]
+        if "ลบแล้ว" in v_note or "❌ ลบข้อมูลแล้ว" in v_status:
             continue
         if "ยังไม่ได้เริ่ม" in v_status:
             counts[7] += 1
@@ -318,7 +324,8 @@ with col2:
         st.write("<div style='border-bottom: 2px solid #800000; margin-bottom: 8px;'></div>", unsafe_allow_html=True)
 
         for k, v in st.session_state.db_dict.items():
-            if "❌ ลบข้อมูลแล้ว" in v["status"]:
+            # 🎯 ดักเช็กเพิ่มความปลอดภัยที่ส่วนการแสดงผลรายตัว: ถ้ามีคำว่า "ลบแล้ว" ข้ามทันที
+            if "ลบแล้ว" in v["note"] or "❌ ลบข้อมูลแล้ว" in v["status"]:
                 continue
                 
             s_idx = 7 if "ยังไม่ได้เริ่ม" in v["status"] else next((i for i, x in enumerate(step_labels) if x in v["status"]), None)
