@@ -4,24 +4,21 @@ import requests
 
 st.set_page_config(page_title="ระบบตรวจประวัติ สภ.", layout="wide")
 
-# ปรับแต่ง CSS เพื่อรองรับการแสดงผลบนหน้าจอมือถือให้เป็นรูปแบบการ์ดที่สวยงามและอ่านง่าย
+# 📱 เติม CSS จัดการตารางดั้งเดิมให้รองรับหน้าจอโทรศัพท์มือถือแบบมีแถบเลื่อนแนวนอน ไม่แตกกระจัดกระจาย
 st.markdown("""
     <style>
-    @media (max-width: 768px) {
-        .mobile-card {
-            background-color: #ffffff;
-            padding: 12px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 12px;
-            border-left: 5px solid #800000;
-        }
-        .mobile-label {
-            font-weight: bold;
-            color: #333333;
-            display: inline-block;
-            width: 90px;
-        }
+    /* บังคับให้พื้นที่ตารางรองรับการเลื่อนซ้าย-ขวาบนมือถืออย่างสมบูรณ์ */
+    .stTable, [data-testid="stTable"] {
+        display: block !important;
+        width: 100% !important;
+        overflow-x: auto !important;
+        white-space: nowrap !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+    /* ปรับแต่งความกว้างของปุ่มในตารางให้กดง่ายบนหน้าจอมือถือ */
+    .stButton > button {
+        padding: 4px 10px !important;
+        font-size: 14px !important;
     }
     </style>
     <div style='background-color:#800000;padding:15px;border-radius:10px;margin-bottom:20px'>
@@ -48,17 +45,18 @@ ENTRY_MAP = {
     "s7": "entry.1786061219",        # step7
 }
 
-# รายชื่อขั้นตอนทั้งหมด
+# รายชื่อขั้นตอนทั้งหมด (ชื่อเต็ม)
 step_labels = [
     "1. รับหนังสือจากต้นสังกัด",
     "2. กรอกประวัติ พิมพ์ลายนิ้วมือกลิ้งหมึก 2 ชุด",
     "3. ทำหนังสือส่งตรวจ พฐ. ลงลายเซ็นรอง",
     "4. ไปส่ง พฐ. ตรวจที่ ภ.จว. แล้วนำกลับมา",
-    "5. ถ่ายเอกสารผลตรวจ 1 ชุด ไว้ในสำเนาคู่ฉับ",
+    "5. ถ่ายเอกสารผลตรวจ 1 ชุด ไว้ในสำเนาคู่ฉบับ",
     "6. ทำหนังสือส่ง รายงานผลกลับต้นสังกัด (2 ชุด)",
     "7. ต้นสังกัดเซ็นรับตัวจริงและคู่สำเนา เรียบร้อย"
 ]
 
+# 🔄 3. ฟังก์ชันดึงลิงก์อ่านข้อมูลโดยตรงผ่านสิทธิ์แชร์
 def get_sheet_urls():
     try:
         base_url = st.secrets["connections"]["gsheets"]["spreadsheet"]
@@ -69,18 +67,12 @@ def get_sheet_urls():
 
 read_url = get_sheet_urls()
 
-# เตรียมหน่วยความจำระบบ
+# ตัวแปรเก็บฐานข้อมูลในความจำหน้าจอ
 if "db_dict" not in st.session_state:
     st.session_state.db_dict = {}
-if "edit_id" not in st.session_state:
-    st.session_state.edit_id = None
-if "selected_dashboard_step" not in st.session_state:
-    st.session_state.selected_dashboard_step = None
-if "prevent_reloading" not in st.session_state:
-    st.session_state.prevent_reloading = False
 
-# โหลดข้อมูลจาก Google Sheets
-if read_url and not st.session_state.prevent_reloading:
+# ดึงข้อมูลจาก Sheets มาอัปเดตลงตาราง
+if read_url and not st.session_state.get("prevent_reloading", False):
     try:
         df = pd.read_csv(read_url)
         if not df.empty:
@@ -105,80 +97,102 @@ if read_url and not st.session_state.prevent_reloading:
     except:
         pass
 
-st.session_state.prevent_reloading = False
+st.session_state["prevent_reloading"] = False
 
-# 📋 ป็อปอัพยืนยันการลบข้อมูล
+if "edit_id" not in st.session_state:
+    st.session_state.edit_id = None
+
+if "selected_dashboard_step" not in st.session_state:
+    st.session_state.selected_dashboard_step = None
+
+# บล็อกป็อปอัพแจ้งเตือนการลบข้อมูล
 @st.dialog("⚠️ ยืนยันการลบข้อมูลถาวรบนหน้าจอ")
 def confirm_delete_dialog(doc_id, name, current_item):
-    st.write(f"คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลของ **{name}** (เลขที่หนังสือ: {doc_id}) ออกจากหน้าเว็บ?")
-    st.error("🚨 เมื่อกดยืนยัน รายชื่อนี้จะไม่แสดงผลบนหน้าจออีกเลยแม้จะกดรีเฟรช")
+    st.write(f"คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลของ **{name}** (เลขที่หนังสือ: {doc_id}) ออกจากระบบหน้าเว็บ?")
+    st.error("🚨 เมื่อกดยืนยัน ระบบจะอัปเดตสถานะการลบไปหลังบ้าน และรายชื่อนี้จะไม่ฟื้นกลับมาอีกแม้จะกดรีเฟรช")
     st.write("")
     c1, c2 = st.columns(2)
     with c1:
         if st.button("🚨 ยืนยันลบข้อมูล", type="primary", use_container_width=True):
             form_data = {
-                ENTRY_MAP["doc"]: doc_id, ENTRY_MAP["name"]: name, ENTRY_MAP["dept"]: current_item["dept"],
-                ENTRY_MAP["status"]: "❌ ลบข้อมูลแล้ว", ENTRY_MAP["note"]: current_item["note"],
-                ENTRY_MAP["s1"]: "False", ENTRY_MAP["s2"]: "False", ENTRY_MAP["s3"]: "False",
-                ENTRY_MAP["s4"]: "False", ENTRY_MAP["s5"]: "False", ENTRY_MAP["s6"]: "False", ENTRY_MAP["s7"]: "False"
+                ENTRY_MAP["doc"]: doc_id,
+                ENTRY_MAP["name"]: name,
+                ENTRY_MAP["dept"]: current_item["dept"],
+                ENTRY_MAP["status"]: "❌ ลบข้อมูลแล้ว",
+                ENTRY_MAP["note"]: current_item["note"],
+                ENTRY_MAP["s1"]: "False", ENTRY_MAP["s2"]: "False",
+                ENTRY_MAP["s3"]: "False", ENTRY_MAP["s4"]: "False",
+                ENTRY_MAP["s5"]: "False", ENTRY_MAP["s6"]: "False",
+                ENTRY_MAP["s7"]: "False"
             }
-            try: requests.post(FORM_URL, data=form_data, timeout=8)
-            except: pass
+            try:
+                requests.post(FORM_URL, data=form_data, timeout=8)
+            except:
+                pass
             if doc_id in st.session_state.db_dict:
                 del st.session_state.db_dict[doc_id]
-            st.session_state.prevent_reloading = True
+            st.session_state["prevent_reloading"] = True
             st.rerun()
     with c2:
-        if st.button("❌ ยกเลิก", use_container_width=True): st.rerun()
+        if st.button("❌ ยกเลิก", use_container_width=True):
+            st.rerun()
 
-# กลไกเดินหน้าขั้นตอนอัตโนมัติ
+# ตั้งค่าเริ่มต้นของฟอร์มกรอกข้อมูลตามสัญญากลไกดั้งเดิม
+default_doc, default_name, default_dept, default_note = "", "", "", ""
+loaded_steps = [False] * 7
+
+if st.session_state.edit_id and st.session_state.edit_id in st.session_state.db_dict:
+    item = st.session_state.db_dict[st.session_state.edit_id]
+    default_doc = st.session_state.edit_id
+    default_name = item["name"]
+    default_dept = item["dept"]
+    default_note = item["note"]
+    loaded_steps = item["steps"] if len(item["steps"]) == 7 else [False]*7
+
+if "form_key_index" not in st.session_state:
+    st.session_state.form_key_index = 0
+
 def on_step_change(index):
-    if st.session_state[f"step_{index}"]:
-        for i in range(index + 1): st.session_state[f"step_{i}"] = True
+    w_key = f"step_idx_{index}_{st.session_state.form_key_index}"
+    if st.session_state.get(w_key, False):
+        for i in range(index + 1):
+            st.session_state[f"step_idx_{i}_{st.session_state.form_key_index}"] = True
     else:
-        for i in range(index, 7): st.session_state[f"step_{i}"] = False
+        for i in range(index, 7):
+            st.session_state[f"step_idx_{i}_{st.session_state.form_key_index}"] = False
 
-# ==================== แบ่งฝั่งการทำงาน ฟอร์มซ้าย - ตารางขวา ====================
 col1, col2 = st.columns([1, 1.8])
 
+# ==================== ฝั่งซ้าย: ฟอร์มกรอกและแก้ไขข้อมูล (ดั้งเดิม) ====================
 with col1:
     st.subheader("📝 บันทึก / แก้ไขข้อมูล")
     
-    # 🎯 กลไกตรวจสอบและบังคับอัดข้อมูลเข้าช่องกรอกฝั่งซ้ายโดยตรง (Fix ค่าไม่อยู่ในช่อง)
-    if st.session_state.edit_id and st.session_state.edit_id in st.session_state.db_dict:
+    if st.session_state.edit_id:
         st.warning(f"⚠️ กำลังแก้ไขเลขที่หนังสือ: {st.session_state.edit_id}")
-        item = st.session_state.db_dict[st.session_state.edit_id]
-        
-        # ยัดค่าใส่ Session State ของกล่องกรอกโดยตรงเพื่อไม่ให้ช่องว่างเปล่า
-        st.session_state["input_doc"] = st.session_state.edit_id
-        st.session_state["input_name"] = item["name"]
-        st.session_state["input_dept"] = item["dept"]
-        st.session_state["input_note"] = item["note"]
-        for i in range(7):
-            st.session_state[f"step_{i}"] = item["steps"][i] if i < len(item["steps"]) else False
     else:
         st.info("➕ กำลังเพิ่มข้อมูลรายใหม่")
-        if "input_doc" not in st.session_state: st.session_state["input_doc"] = ""
-        if "input_name" not in st.session_state: st.session_state["input_name"] = ""
-        if "input_dept" not in st.session_state: st.session_state["input_dept"] = ""
-        if "input_note" not in st.session_state: st.session_state["input_note"] = ""
-        for i in range(7):
-            if f"step_{i}" not in st.session_state: st.session_state[f"step_{i}"] = False
 
-    # กล่องกรอกข้อมูลหลักฝั่งซ้าย
-    doc_num = st.text_input("เลขที่หนังสือรับ:", key="input_doc")
-    name = st.text_input("ชื่อ-สกุล ผู้ขอตรวจสอบประวัติ:", key="input_name")
-    dept = st.text_input("หน่วยงานต้นสังกัด (ที่ส่งมา):", key="input_dept")
-    note = st.text_area("หมายเหตุ:", height=70, key="input_note")
+    doc_num = st.text_input("เลขที่หนังสือรับ:", value=default_doc, key=f"doc_inp_{st.session_state.form_key_index}")
+    name = st.text_input("ชื่อ-สกุล ผู้ขอตรวจสอบประวัติ:", value=default_name, key=f"name_inp_{st.session_state.form_key_index}")
+    dept = st.text_input("หน่วยงานต้นสังกัด (ที่ส่งมา):", value=default_dept, key=f"dept_inp_{st.session_state.form_key_index}")
+    note = st.text_area("หมายเหตุ:", value=default_note, height=70, key=f"note_inp_{st.session_state.form_key_index}")
     
     st.write("**ติ๊กเลือกขั้นตอนที่ทำเสร็จแล้ว:**")
+    
     for idx, label in enumerate(step_labels):
-        st.checkbox(label, key=f"step_{idx}", on_change=on_step_change, args=(idx,))
+        st.checkbox(
+            label,
+            value=loaded_steps[idx],
+            key=f"step_idx_{idx}_{st.session_state.form_key_index}",
+            on_change=on_step_change,
+            args=(idx Diligently,)
+        )
 
-    # ประมวลผลสถานะปัจจุบันจากเช็คบ็อกซ์
-    checks = [st.session_state[f"step_{i}"] for i in range(7)]
+    checks = [st.session_state.get(f"step_idx_{i}_{st.session_state.form_key_index}", False) for i in range(7)]
+    
     status_text = "⚪ ยังไม่ได้เริ่ม"
-    if checks[6]: status_text = f"🟢 {step_labels[6]}"
+    if checks[6]:
+        status_text = f"🟢 {step_labels[6]}"
     else:
         for idx in range(6, -1, -1):
             if checks[idx]:
@@ -192,8 +206,11 @@ with col1:
         if st.button(btn_label, type="primary", use_container_width=True):
             if doc_num and name:
                 form_data = {
-                    ENTRY_MAP["doc"]: doc_num, ENTRY_MAP["name"]: name, ENTRY_MAP["dept"]: dept,
-                    ENTRY_MAP["status"]: status_text, ENTRY_MAP["note"]: note,
+                    ENTRY_MAP["doc"]: doc_num,
+                    ENTRY_MAP["name"]: name,
+                    ENTRY_MAP["dept"]: dept,
+                    ENTRY_MAP["status"]: status_text,
+                    ENTRY_MAP["note"]: note,
                     ENTRY_MAP["s1"]: str(checks[0]), ENTRY_MAP["s2"]: str(checks[1]), ENTRY_MAP["s3"]: str(checks[2]),
                     ENTRY_MAP["s4"]: str(checks[3]), ENTRY_MAP["s5"]: str(checks[4]), ENTRY_MAP["s6"]: str(checks[5]), ENTRY_MAP["s7"]: str(checks[6])
                 }
@@ -201,42 +218,39 @@ with col1:
                     requests.post(FORM_URL, data=form_data)
                     st.session_state.db_dict[str(doc_num)] = {"name": name, "dept": dept, "status": status_text, "note": note, "steps": checks}
                     st.session_state.edit_id = None
-                    st.session_state.prevent_reloading = True
-                    # ล้างฟอร์มฝั่งซ้ายให้ว่างหลังบันทึกเสร็จ
-                    st.session_state["input_doc"] = ""
-                    st.session_state["input_name"] = ""
-                    st.session_state["input_dept"] = ""
-                    st.session_state["input_note"] = ""
-                    for i in range(7): st.session_state[f"step_{i}"] = False
+                    st.session_state["prevent_reloading"] = True
+                    st.session_state.form_key_index += 1
                     st.success("🎉 บันทึกข้อมูลสำเร็จแล้วครับพี่!")
                     st.rerun()
-                except: st.error("❌ เกิดข้อผิดพลาดทางเครือข่าย")
-            else: st.error("กรุณากรอกข้อมูลเลขที่หนังสือและชื่อผู้ขอตรวจให้ครบถ้วน")
+                except:
+                    st.error("❌ เกิดข้อผิดพลาดทางเครือข่าย")
+            else:
+                st.error("กรุณากรอกข้อมูลเลขที่หนังสือและชื่อผู้ขอตรวจให้ครบถ้วน")
                 
     with btn_col2:
         if st.session_state.edit_id:
-            if st.button("❌ ยกเลิกแก้ไข", use_container_width=True):
+            if st.button("❌ ยกเลิก", use_container_width=True):
                 st.session_state.edit_id = None
-                st.session_state.prevent_reloading = True
-                st.session_state["input_doc"] = ""
-                st.session_state["input_name"] = ""
-                st.session_state["input_dept"] = ""
-                st.session_state["input_note"] = ""
-                for i in range(7): st.session_state[f"step_{i}"] = False
+                st.session_state["prevent_reloading"] = True
+                st.session_state.form_key_index += 1
                 st.rerun()
 
-# ==================== ฝั่งขวา: แดชบอร์ดปุ่มกดและตารางแสดงผลภาพรวม ====================
+# ==================== ฝั่งขวา: แดชบอร์ดปุ่มกดและโครงสร้างตารางข้อมูล (ดั้งเดิม) ====================
 with col2:
     st.subheader("📊 ระบบติดตามสถานะภาพรวม")
     
     counts = [0] * 8  
     for k, v in st.session_state.db_dict.items():
         v_status = v["status"]
-        if "❌ ลบข้อมูลแล้ว" in v_status: continue
-        if "ยังไม่ได้เริ่ม" in v_status: counts[7] += 1
+        if "❌ ลบข้อมูลแล้ว" in v_status:
+            continue
+        if "ยังไม่ได้เริ่ม" in v_status:
+            counts[7] += 1
         else:
             for idx, label in enumerate(step_labels):
-                if label in v_status: counts[idx] += 1; break
+                if label in v_status:
+                    counts[idx] += 1
+                    break
 
     st.write("**📌 กระดานสรุปสถานะปัจจุบัน (คลิกเพื่อกรองดูรายชื่อ):**")
     
@@ -277,53 +291,58 @@ with col2:
     search_query = st.text_input("พิมพ์รหัสหนังสือ หรือ ชื่อบุคคลที่ต้องการค้นหา:", placeholder="พิมพ์ค้นหาที่นี่...").strip()
     
     if st.session_state.selected_dashboard_step is not None:
-        if st.button("❌ ล้างตัวกรองขั้นตอน Dashboard", use_container_width=True):
-            st.session_state.selected_dashboard_step = None; st.rerun()
+        if st.button("❌ ล้างตัวกรองปุ่มขั้นตอน Dashboard", use_container_width=True):
+            st.session_state.selected_dashboard_step = None
+            st.rerun()
 
     st.write("---")
     st.write("**📋 ตารางตรวจสอบสถานะปัจจุบัน**")
     
+    # 🛠️ โครงสร้างตารางหลักดั้งเดิมของพี่ พร้อม CSS ตัวช่วยสไลด์หน้าจอมือถือแนวนอน
     if st.session_state.db_dict:
-        all_records = []
+        # ส่วนหัวตารางดั้งเดิม
+        header_cols = st.columns([1, 1.2, 1, 2, 1.2, 0.7, 0.7])
+        with header_cols[0]: st.markdown("**เลขหนังสือ**")
+        with header_cols[1]: st.markdown("**ชื่อ-สกุล**")
+        with header_cols[2]: st.markdown("**ต้นสังกัด**")
+        with header_cols[3]: st.markdown("**สถานะปัจจุบัน**")
+        with header_cols[4]: st.markdown("**หมายเหตุ**")
+        with header_cols[5]: st.markdown("**แก้ไข**")
+        with header_cols[6]: st.markdown("**ลบ**")
+        st.write("<div style='border-bottom: 2px solid #800000; margin-bottom: 8px;'></div>", unsafe_allow_html=True)
+
         for k, v in st.session_state.db_dict.items():
-            if "❌ ลบข้อมูลแล้ว" in v["status"]: continue
+            if "❌ ลบข้อมูลแล้ว" in v["status"]:
+                continue
+                
             s_idx = 7 if "ยังไม่ได้เริ่ม" in v["status"] else next((i for i, x in enumerate(step_labels) if x in v["status"]), None)
             
-            if st.session_state.selected_dashboard_step is not None and s_idx != st.session_state.selected_dashboard_step: continue
-            if search_query and (search_query not in str(k) and search_query not in str(v["name"]) and search_query not in str(v["dept"])): continue
+            if st.session_state.selected_dashboard_step is not None and s_idx != st.session_state.selected_dashboard_step:
+                continue
+            if search_query and (search_query not in str(k) and search_query not in str(v["name"]) and search_query not in str(v["dept"])):
+                continue
                 
-            all_records.append({"id": k, "name": v["name"], "dept": v["dept"], "status": v["status"], "note": v["note"]})
-
-        if all_records:
-            # ส่วนจัดการตารางและการ์ดแสดงผลบนมือถือให้สวยงามและกดปุ่มได้ง่าย
-            for row in all_records:
-                st.markdown(f"""
-                <div class="mobile-card">
-                    <div><span class="mobile-label">เลขหนังสือ:</span> {row['id']}</div>
-                    <div><span class="mobile-label">ชื่อ-สกุล:</span> {row['name']}</div>
-                    <div><span class="mobile-label">ต้นสังกัด:</span> {row['dept']}</div>
-                    <div style='margin-top:4px;'><span class="mobile-label">สถานะ:</span> {row['status']}</div>
-                """, unsafe_allow_html=True)
-                
-                if row["note"]:
-                    st.markdown(f"<div><span class='mobile-label'>หมายเหตุ:</span> <span style='color:gray;'>{row['note']}</span></div>", unsafe_allow_html=True)
-                st.markdown("</div>", unsafe_allow_html=True)
-                
-                # แสดงปุ่มแก้ไขและปุ่มลบแยกรายบุคคลไว้ใต้ข้อมูลอย่างสวยงาม
-                act_c1, act_c2 = st.columns(2)
-                with act_c1:
-                    if st.button("✏️ แก้ไขข้อมูล", key=f"edit_b_{row['id']}", use_container_width=True):
-                        st.session_state.edit_id = row["id"]
-                        st.rerun()
-                with act_c2:
-                    if st.button("🗑️ ลบข้อมูล", key=f"del_b_{row['id']}", use_container_width=True):
-                        confirm_delete_dialog(row["id"], row["name"], st.session_state.db_dict[row['id']])
-                
-                st.write("<div style='margin-bottom:15px; border-bottom:1px dashed #ddd;'></div>", unsafe_allow_html=True)
-        else:
-            st.warning("🔍 ไม่พบข้อมูลที่ตรงกับเงื่อนไขครับ")
+            # สร้างแถวข้อมูลเรียงแบบเดิมเป๊ะๆ ปลอดภัยต่อระบบ 100%
+            row_cols = st.columns([1, 1.2, 1, 2, 1.2, 0.7, 0.7])
+            with row_cols[0]: st.write(k)
+            with row_cols[1]: st.write(v["name"])
+            with row_cols[2]: st.write(v["dept"])
+            with row_cols[3]: st.write(v["status"])
+            with row_cols[4]: st.write(v["note"] if v["note"] else "-")
+            
+            with row_cols[5]:
+                if st.button("✏️", key=f"edit_btn_{k}", use_container_width=True):
+                    st.session_state.edit_id = k
+                    st.rerun()
+            with row_cols[6]:
+                if st.button("🗑️", key=f"del_btn_{k}", use_container_width=True):
+                    confirm_delete_dialog(k, v["name"], v)
+                    
+            st.write("<div style='border-bottom: 1px solid #eee; margin-top: 4px; margin-bottom: 4px;'></div>", unsafe_allow_html=True)
 
         st.write("---")
         if st.button("🔄 ดึงข้อมูลเวอร์ชันล่าสุดจาก Google Sheets", use_container_width=True):
             st.session_state.clear()
             st.rerun()
+    else:
+        st.info("ยังไม่มีข้อมูลในระบบ หรือกำลังเชื่อมต่อฐานข้อมูล...")
