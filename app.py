@@ -78,35 +78,19 @@ if st.session_state.edit_id and st.session_state.edit_id in st.session_state.db_
     default_note = item["note"]
     default_steps = item["steps"] if len(item["steps"]) == 7 else [False]*7
 
+# แบ่งคอลัมน์ซ้าย-ขวา
 col1, col2 = st.columns([1, 1.3])
 
+# --- ฝั่งซ้าย: ฟอร์มจัดการและบันทึกข้อมูล ---
 with col1:
     st.subheader("📝 บันทึก / แก้ไขข้อมูล")
     
-    # 🔍 ส่วนค้นหาและเลือกรายชื่อเพื่อนำไปแก้ไข
-    if st.session_state.db_dict:
-        search_options = ["--- ➕ เพิ่มข้อมูลรายใหม่ ---"] + sorted(list(st.session_state.db_dict.keys()))
-        
-        current_index = 0
-        if st.session_state.edit_id in search_options:
-            current_index = search_options.index(st.session_state.edit_id)
-            
-        selected_doc = st.selectbox("🔍 ค้นหาเลขที่หนังสือรับ เพื่อดึงข้อมูลมาแก้ไข:", search_options, index=current_index)
-        
-        if selected_doc != "--- ➕ เพิ่มข้อมูลรายใหม่ ---":
-            if st.session_state.edit_id != selected_doc:
-                st.session_state.edit_id = selected_doc
-                st.rerun()
-        else:
-            if st.session_state.edit_id is not None:
-                st.session_state.edit_id = None
-                st.rerun()
+    # ตัวบอกสถานะโหมดใช้งานปัจจุบัน
+    if st.session_state.edit_id:
+        st.warning(f"⚠️ กำลังอยู่ในโหมดแก้ไขข้อมูลของเลขที่หนังสือ: {st.session_state.edit_id}")
     else:
-        st.info("💡 ยังไม่มีข้อมูลในระบบ สามารถกรอกเพิ่มข้อมูลรายใหม่ได้ทันที")
+        st.info("➕ กำลังอยู่ในโหมดเพิ่มข้อมูลรายใหม่")
 
-    st.write("---")
-    
-    # ฟอร์มรับข้อมูล
     doc_num = st.text_input("เลขที่หนังสือรับ:", value=default_doc)
     name = st.text_input("ชื่อ-สกุล ผู้ขอตรวจสอบประวัติ:", value=default_name)
     dept = st.text_input("หน่วยงานต้นสังกัด (ที่ส่งมา):", value=default_dept)
@@ -144,32 +128,59 @@ with col1:
 
     btn_label = "💾 อัปเดตข้อมูลและบันทึกลงระบบ" if st.session_state.edit_id else "💾 บันทึกข้อมูลลงระบบ"
     
-    if st.button(btn_label, type="primary", use_container_width=True):
-        if doc_num and name:
-            form_data = {
-                ENTRY_MAP["doc"]: doc_num,
-                ENTRY_MAP["name"]: name,
-                ENTRY_MAP["dept"]: dept,
-                ENTRY_MAP["status"]: status_text,
-                ENTRY_MAP["note"]: note,
-                ENTRY_MAP["s1"]: str(s1), ENTRY_MAP["s2"]: str(s2), ENTRY_MAP["s3"]: str(s3),
-                ENTRY_MAP["s4"]: str(s4), ENTRY_MAP["s5"]: str(s5), ENTRY_MAP["s6"]: str(s6), ENTRY_MAP["s7"]: str(s7)
-            }
-            try:
-                response = requests.post(FORM_URL, data=form_data)
+    btn_col1, btn_col2 = st.columns([2, 1])
+    with btn_col1:
+        if st.button(btn_label, type="primary", use_container_width=True):
+            if doc_num and name:
+                form_data = {
+                    ENTRY_MAP["doc"]: doc_num,
+                    ENTRY_MAP["name"]: name,
+                    ENTRY_MAP["dept"]: dept,
+                    ENTRY_MAP["status"]: status_text,
+                    ENTRY_MAP["note"]: note,
+                    ENTRY_MAP["s1"]: str(s1), ENTRY_MAP["s2"]: str(s2), ENTRY_MAP["s3"]: str(s3),
+                    ENTRY_MAP["s4"]: str(s4), ENTRY_MAP["s5"]: str(s5), ENTRY_MAP["s6"]: str(s6), ENTRY_MAP["s7"]: str(s7)
+                }
+                try:
+                    response = requests.post(FORM_URL, data=form_data)
+                    st.session_state.db_dict[str(doc_num)] = {"name": name, "dept": dept, "status": status_text, "note": note, "steps": checks}
+                    st.session_state.edit_id = None
+                    st.success("🎉 บันทึกการทำงานสำเร็จเรียบร้อย!")
+                    st.balloons()
+                    st.rerun()
+                except Exception as e:
+                    st.error("❌ เกิดข้อผิดพลาดทางเครือข่าย แต่บันทึกบนหน้าจอชั่วคราวให้แล้วครับ")
+            else:
+                st.error("กรุณากรอกข้อมูลเลขที่หนังสือและชื่อผู้ขอตรวจให้ครบถ้วน")
                 
-                st.session_state.db_dict[str(doc_num)] = {"name": name, "dept": dept, "status": status_text, "note": note, "steps": checks}
+    with btn_col2:
+        if st.session_state.edit_id:
+            if st.button("❌ ยกเลิกแก้ไข", use_container_width=True):
                 st.session_state.edit_id = None
-                st.success("🎉 บันทึกการอัปเดตข้อมูลสำเร็จเรียบร้อยแล้วครับพี่!")
-                st.balloons()
                 st.rerun()
-            except Exception as e:
-                st.error("❌ เกิดข้อผิดพลาดทางเครือข่าย แต่บันทึกบนหน้าจอชั่วคราวให้แล้วครับ")
-        else:
-            st.error("กรุณากรอกข้อมูลเลขที่หนังสือและชื่อผู้ขอตรวจให้ครบถ้วน")
 
+# --- ฝั่งขวา: ตารางตรวจสอบสถานะและระบบค้นหาดึงข้อมูล ---
 with col2:
     st.subheader("📊 ตารางตรวจสอบสถานะปัจจุบัน")
+    
+    # 🔍 เพิ่มกล่องค้นหา/ดึงรายชื่อมาแก้ไขไว้ที่โซนตารางโดยตรงตามต้องการ
+    if st.session_state.db_dict:
+        # สร้างตัวเลือกรวม เลขที่หนังสือ - ชื่อผู้ขอตรวจ เพื่อให้พี่แยกแยะและหาเคสง่ายขึ้น
+        search_options = ["--- 🔍 เลือกเลขที่หนังสือรับที่ต้องการแก้ไข จากตรงนี้ ---"]
+        for k, v in sorted(st.session_state.db_dict.items()):
+            search_options.append(f"{k} | {v['name']}")
+            
+        selected_box = st.selectbox("👉 ค้นหา/เลือก ข้อมูลเพื่อส่งกลับไปแก้ไขฝั่งซ้าย:", search_options)
+        
+        if selected_box != "--- 🔍 เลือกเลขที่หนังสือรับที่ต้องการแก้ไข จากตรงนี้ ---":
+            target_key = selected_box.split(" | ")[0]
+            if st.session_state.edit_id != target_key:
+                st.session_state.edit_id = target_key
+                st.rerun()
+                
+    st.write("---")
+    
+    # โชว์ตารางข้อมูลปกติ
     if st.session_state.db_dict:
         records = []
         for k, v in st.session_state.db_dict.items():
