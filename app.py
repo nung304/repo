@@ -11,7 +11,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # 🔗 1. ลิงก์ยิงฟอร์มหลังบ้าน
-FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSckbSH3a337W8yknYgAsAw7esyGyEv55lgK8g6qWCv_q2HtFg/formResponse"
+FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSckbSH3a337W8yknYgAsAw7esyGyEv55lgK8g6QWCv_q2HtFg/formResponse"
 
 # 🔑 2. แผนผังรหัสกล่องข้อความ Google Form ของพี่
 ENTRY_MAP = {
@@ -78,18 +78,17 @@ if st.session_state.edit_id and st.session_state.edit_id in st.session_state.db_
     default_note = item["note"]
     default_steps = item["steps"] if len(item["steps"]) == 7 else [False]*7
 
-# แบ่งคอลัมน์ซ้าย-ขวา
-col1, col2 = st.columns([1, 1.3])
+# แบ่งคอลัมน์ซ้าย (ฟอร์ม) - ขวา (ตารางระบบค้นหา)
+col1, col2 = st.columns([1, 1.4])
 
-# --- ฝั่งซ้าย: ฟอร์มจัดการและบันทึกข้อมูล ---
+# ==================== ฝั่งซ้าย: ฟอร์มกรอกและแก้ไขข้อมูล ====================
 with col1:
     st.subheader("📝 บันทึก / แก้ไขข้อมูล")
     
-    # ตัวบอกสถานะโหมดใช้งานปัจจุบัน
     if st.session_state.edit_id:
-        st.warning(f"⚠️ กำลังอยู่ในโหมดแก้ไขข้อมูลของเลขที่หนังสือ: {st.session_state.edit_id}")
+        st.warning(f"⚠️ กำลังแก้ไขเลขที่หนังสือ: {st.session_state.edit_id}")
     else:
-        st.info("➕ กำลังอยู่ในโหมดเพิ่มข้อมูลรายใหม่")
+        st.info("➕ กำลังเพิ่มข้อมูลรายใหม่")
 
     doc_num = st.text_input("เลขที่หนังสือรับ:", value=default_doc)
     name = st.text_input("ชื่อ-สกุล ผู้ขอตรวจสอบประวัติ:", value=default_name)
@@ -111,91 +110,4 @@ with col1:
     s2 = st.checkbox(step_labels[1], value=default_steps[1])
     s3 = st.checkbox(step_labels[2], value=default_steps[2])
     s4 = st.checkbox(step_labels[3], value=default_steps[3])
-    s5 = st.checkbox(step_labels[4], value=default_steps[4])
-    s6 = st.checkbox(step_labels[5], value=default_steps[5])
-    s7 = st.checkbox(step_labels[6], value=default_steps[6])
-
-    checks = [s1, s2, s3, s4, s5, s6, s7]
-    
-    status_text = "⚪ ยังไม่ได้เริ่ม"
-    if s7:
-        status_text = f"🟢 {step_labels[6]}"
-    else:
-        for idx in range(6, -1, -1):
-            if checks[idx]:
-                status_text = f"🟡 {step_labels[idx]}"
-                break
-
-    btn_label = "💾 อัปเดตข้อมูลและบันทึกลงระบบ" if st.session_state.edit_id else "💾 บันทึกข้อมูลลงระบบ"
-    
-    btn_col1, btn_col2 = st.columns([2, 1])
-    with btn_col1:
-        if st.button(btn_label, type="primary", use_container_width=True):
-            if doc_num and name:
-                form_data = {
-                    ENTRY_MAP["doc"]: doc_num,
-                    ENTRY_MAP["name"]: name,
-                    ENTRY_MAP["dept"]: dept,
-                    ENTRY_MAP["status"]: status_text,
-                    ENTRY_MAP["note"]: note,
-                    ENTRY_MAP["s1"]: str(s1), ENTRY_MAP["s2"]: str(s2), ENTRY_MAP["s3"]: str(s3),
-                    ENTRY_MAP["s4"]: str(s4), ENTRY_MAP["s5"]: str(s5), ENTRY_MAP["s6"]: str(s6), ENTRY_MAP["s7"]: str(s7)
-                }
-                try:
-                    response = requests.post(FORM_URL, data=form_data)
-                    st.session_state.db_dict[str(doc_num)] = {"name": name, "dept": dept, "status": status_text, "note": note, "steps": checks}
-                    st.session_state.edit_id = None
-                    st.success("🎉 บันทึกการทำงานสำเร็จเรียบร้อย!")
-                    st.balloons()
-                    st.rerun()
-                except Exception as e:
-                    st.error("❌ เกิดข้อผิดพลาดทางเครือข่าย แต่บันทึกบนหน้าจอชั่วคราวให้แล้วครับ")
-            else:
-                st.error("กรุณากรอกข้อมูลเลขที่หนังสือและชื่อผู้ขอตรวจให้ครบถ้วน")
-                
-    with btn_col2:
-        if st.session_state.edit_id:
-            if st.button("❌ ยกเลิกแก้ไข", use_container_width=True):
-                st.session_state.edit_id = None
-                st.rerun()
-
-# --- ฝั่งขวา: ตารางตรวจสอบสถานะและระบบค้นหาดึงข้อมูล ---
-with col2:
-    st.subheader("📊 ตารางตรวจสอบสถานะปัจจุบัน")
-    
-    # 🔍 เพิ่มกล่องค้นหา/ดึงรายชื่อมาแก้ไขไว้ที่โซนตารางโดยตรงตามต้องการ
-    if st.session_state.db_dict:
-        # สร้างตัวเลือกรวม เลขที่หนังสือ - ชื่อผู้ขอตรวจ เพื่อให้พี่แยกแยะและหาเคสง่ายขึ้น
-        search_options = ["--- 🔍 เลือกเลขที่หนังสือรับที่ต้องการแก้ไข จากตรงนี้ ---"]
-        for k, v in sorted(st.session_state.db_dict.items()):
-            search_options.append(f"{k} | {v['name']}")
-            
-        selected_box = st.selectbox("👉 ค้นหา/เลือก ข้อมูลเพื่อส่งกลับไปแก้ไขฝั่งซ้าย:", search_options)
-        
-        if selected_box != "--- 🔍 เลือกเลขที่หนังสือรับที่ต้องการแก้ไข จากตรงนี้ ---":
-            target_key = selected_box.split(" | ")[0]
-            if st.session_state.edit_id != target_key:
-                st.session_state.edit_id = target_key
-                st.rerun()
-                
-    st.write("---")
-    
-    # โชว์ตารางข้อมูลปกติ
-    if st.session_state.db_dict:
-        records = []
-        for k, v in st.session_state.db_dict.items():
-            records.append({
-                "เลขที่หนังสือรับ": k, 
-                "ชื่อ-สกุล ผู้ขอตรวจ": v["name"], 
-                "หน่วยงานต้นสังกัด": v["dept"], 
-                "สถานะปัจจุบัน": v["status"], 
-                "หมายเหตุ": v["note"]
-            })
-        st.dataframe(pd.DataFrame(records), use_container_width=True, hide_index=True)
-        
-        st.write("---")
-        if st.button("🔄 ดึงข้อมูลเวอร์ชันล่าสุดจาก Google Sheets"):
-            st.session_state.clear()
-            st.rerun()
-    else:
-        st.info("ยังไม่มีข้อมูลในระบบ หรือกำลังเชื่อมต่อฐานข้อมูล...")
+    s5 = st.checkbox(step_labels[4], value=default
