@@ -28,7 +28,7 @@ st.markdown("""
         padding: 15px 8px;
     }
     .step-card-value {
-        font-size: 42px; 
+        font-size: 60px; 
         font-weight: 900; 
         margin: 0;
         line-height: 1;
