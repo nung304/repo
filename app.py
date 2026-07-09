@@ -28,14 +28,14 @@ st.markdown("""
         padding: 15px 8px;
     }
     .step-card-value {
-        font-size: 60px; 
+        font-size: 42px; 
         font-weight: 900; 
         margin: 0;
         line-height: 1;
         color: #ffffff !important;
     }
     .step-card-title {
-        font-size: 14px; 
+        font-size: 20px; 
         font-weight: 700;
         color: #ffffff !important;
         margin-top: 8px;
