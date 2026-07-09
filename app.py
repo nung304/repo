@@ -79,7 +79,7 @@ if not st.session_state.get("prevent_reloading", False):
                 }
         st.session_state.db_dict = new_db
     except Exception as e:
-        st.warning(f"⚠️ ดึงข้อมูลออนไลน์ขัดข้องชั่วคราว: {e}")
+        st.warning(f"⚠️ ดึงข้อมูลออนไลน์ขักข้องชั่วคราว: {e}")
 
 st.session_state["prevent_reloading"] = False
 
@@ -107,7 +107,7 @@ def confirm_delete_dialog(doc_id, name):
 # เซ็ตค่าเริ่มต้นฟอร์ม
 default_doc, default_name, default_dept, default_note = "", "", "", ""
 loaded_steps = [False] * 7
-default_title_index = 0 # 0=นาย, 1=นางสาว, 2=นาง
+default_title_index = 0
 
 if st.session_state.edit_id and st.session_state.edit_id in st.session_state.db_dict:
     item = st.session_state.db_dict[st.session_state.edit_id]
@@ -117,7 +117,6 @@ if st.session_state.edit_id and st.session_state.edit_id in st.session_state.db_
     default_note = item["note"]
     loaded_steps = item["steps"]
     
-    # แยกคำนำหน้านามเพื่อมาแสดงผลตอนกดแก้ไข
     if full_name_str.startswith("นาย"):
         default_title_index = 0
         default_name = full_name_str.replace("นาย", "", 1)
@@ -156,27 +155,28 @@ with col1:
 
     st.write("**📌 กระดานสรุปสถานะปัจจุบัน (คลิกเพื่อกรองดูรายชื่อ):**")
     d_row1_c1, d_row1_c2 = st.columns(2)
+    # 🌟 ปรับใส่ข้อความ "ดำเนินการถึง..." บนปุ่มกดแดชบอร์ดตามสั่งครับพี่ 🌟
     with d_row1_c1:
-        if st.button(f"📁 ขั้นตอนที่ 1 ({counts[0]} เรื่อง)", key="b1", type="primary" if st.session_state.selected_dashboard_step == 0 else "secondary", use_container_width=True):
+        if st.button(f"📁 ดำเนินการถึง ขั้นตอนที่ 1 ({counts[0]} เรื่อง)", key="b1", type="primary" if st.session_state.selected_dashboard_step == 0 else "secondary", use_container_width=True):
             st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 0 else 0; st.rerun()
     with d_row1_c2:
-        if st.button(f"📝 ขั้นตอนที่ 2 ({counts[1]} เรื่อง)", key="b2", type="primary" if st.session_state.selected_dashboard_step == 1 else "secondary", use_container_width=True):
+        if st.button(f"📝 ดำเนินการถึง ขั้นตอนที่ 2 ({counts[1]} เรื่อง)", key="b2", type="primary" if st.session_state.selected_dashboard_step == 1 else "secondary", use_container_width=True):
             st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 1 else 1; st.rerun()
 
     d_row2_c1, d_row2_c2 = st.columns(2)
     with d_row2_c1:
-        if st.button(f"✉️ ขั้นตอนที่ 3 ({counts[2]} เรื่อง)", key="b3", type="primary" if st.session_state.selected_dashboard_step == 2 else "secondary", use_container_width=True):
+        if st.button(f"✉️ ดำเนินการถึง ขั้นตอนที่ 3 ({counts[2]} เรื่อง)", key="b3", type="primary" if st.session_state.selected_dashboard_step == 2 else "secondary", use_container_width=True):
             st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 2 else 2; st.rerun()
     with d_row2_c2:
-        if st.button(f"🚔 ขั้นตอนที่ 4 ({counts[3]} เรื่อง)", key="b4", type="primary" if st.session_state.selected_dashboard_step == 3 else "secondary", use_container_width=True):
+        if st.button(f"🚔 ดำเนินการถึง ขั้นตอนที่ 4 ({counts[3]} เรื่อง)", key="b4", type="primary" if st.session_state.selected_dashboard_step == 3 else "secondary", use_container_width=True):
             st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 3 else 3; st.rerun()
 
     d_row3_c1, d_row3_c2 = st.columns(2)
     with d_row3_c1:
-        if st.button(f"🖨️ ขั้นตอนที่ 5 ({counts[4]} เรื่อง)", key="b5", type="primary" if st.session_state.selected_dashboard_step == 4 else "secondary", use_container_width=True):
+        if st.button(f"🖨️ ดำเนินการถึง ขั้นตอนที่ 5 ({counts[4]} เรื่อง)", key="b5", type="primary" if st.session_state.selected_dashboard_step == 4 else "secondary", use_container_width=True):
             st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 4 else 4; st.rerun()
     with d_row3_c2:
-        if st.button(f"📤 ขั้นตอนที่ 6 ({counts[5]} เรื่อง)", key="b6", type="primary" if st.session_state.selected_dashboard_step == 5 else "secondary", use_container_width=True):
+        if st.button(f"📤 ดำเนินการถึง ขั้นตอนที่ 6 ({counts[5]} เรื่อง)", key="b6", type="primary" if st.session_state.selected_dashboard_step == 5 else "secondary", use_container_width=True):
             st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 5 else 5; st.rerun()
 
     d_row4_c1, d_row4_c2 = st.columns(2)
@@ -197,10 +197,7 @@ with col1:
         st.info("➕ กำลังเพิ่มข้อมูลรายใหม่")
 
     doc_num = st.text_input("เลขที่หนังสือรับ:", value=default_doc, key=f"doc_inp_{st.session_state.form_key_index}", disabled=(st.session_state.edit_id is not None))
-    
-    # 🌟 เพิ่มวิดเจ็ต ติ๊กเลือก นาย / นางสาว / นาง ตรงนี้ครับพี่ 🌟
     title_prefix = st.radio("คำนำหน้านาม:", ["นาย", "นางสาว", "นาง"], index=default_title_index, horizontal=True, key=f"title_inp_{st.session_state.form_key_index}")
-    
     name_input = st.text_input("ชื่อ-สกุล ผู้ขอตรวจสอบประวัติ (ไม่ต้องพิมพ์คำนำหน้าซ้ำ):", value=default_name, key=f"name_inp_{st.session_state.form_key_index}")
     dept = st.text_input("หน่วยงานต้นสังกัด (ที่ส่งมา):", value=default_dept, key=f"dept_inp_{st.session_state.form_key_index}")
     note = st.text_area("หมายเหตุ:", value=default_note, height=70, key=f"note_inp_{st.session_state.form_key_index}")
@@ -226,9 +223,7 @@ with col1:
     with btn_col1:
         if st.button(btn_label, type="primary", use_container_width=True):
             if doc_num and name_input:
-                # 🛠️ เอาคำนำหน้า มารวมกับ ชื่อ-สกุล ก่อนส่งบันทึกครับ
                 full_name = f"{title_prefix}{name_input.strip()}"
-                
                 case_data = {
                     "doc": str(doc_num).strip(), "name": full_name, "dept": dept, "status": status_text, "note": note,
                     "s1": str(checks[0]), "s2": str(checks[1]), "s3": str(checks[2]), "s4": str(checks[3]), 
