@@ -5,27 +5,27 @@ from datetime import datetime
 
 st.set_page_config(page_title="ระบบตรวจประวัติ สภ.", layout="wide")
 
-# 🎨 🛠️ อัปเดตพื้นหลังเป็นภาพลายนิ้วมือดิจิทัล / ไบโอเมตริกซ์ ตามที่พี่ส่งมาเลยครับ
+# 🎨 🛠️ อัปเดตธีมพื้นหลังเป็นภาพสไตล์โต๊ะตรวจลายนิ้วมือ พฐ. (Forensic Science & Fingerprints)
 st.markdown("""
     <style>
-    /* 🌆 ใช้ภาพลายนิ้วมือไซเบอร์ และซ้อน Gradient มืดสีน้ำเงินเข้มเพื่อดันตัวอักษรให้ชัดเจน */
+    /* 🌆 ใช้ภาพแนว Forensic / Fingerprint เท่ ๆ โทนสีน้ำเงิน-ฟ้าสไตล์กองพิสูจน์หลักฐาน */
     .stApp {
-        background-image: linear-gradient(rgba(8, 18, 30, 0.88), rgba(6, 14, 24, 0.93)), 
-                          url("https://cdn.avadirect.com/blog/blog/wp-content/uploads/2015/07/Digital-Forensics-Workstation-1.jpg");
+        background-image: linear-gradient(rgba(10, 22, 35, 0.88), rgba(8, 16, 26, 0.93)), 
+                          url("https://images.unsplash.com/photo-1530210120071-aa4d16feea3d?q=80&w=2000");
         background-size: cover;
         background-position: center;
         background-attachment: fixed;
     }
     
-    /* 🖥️ กล่องเนื้อหาหลักแบบกระจกโปร่งแสง (Glassmorphism) สไตล์ไซเบอร์ */
+    /* 🖥️ กล่องเนื้อหาหลักแบบโปร่งแสง มีกลิ่นอายห้องปฏิบัติการนิติวิทยาศาสตร์ดิจิทัล */
     [data-testid="stVerticalBlock"] > div {
-        background-color: rgba(6, 17, 28, 0.55);
+        background-color: rgba(6, 18, 30, 0.6);
         padding: 10px;
         border-radius: 14px;
-        border: 1px solid rgba(0, 188, 212, 0.1);
+        border: 1px solid rgba(0, 150, 255, 0.12);
     }
     
-    /* ตั้งค่าตารางให้รองรับมือถือลื่นไหล */
+    /* ตั้งค่าตารางให้รองรับมือถือได้ลื่นไหล ไม่ล้นจอ */
     .stTable, [data-testid="stTable"] {
         display: block !important;
         width: 100% !important;
@@ -38,7 +38,7 @@ st.markdown("""
         font-size: 14px !important;
     }
     
-    /* 🌌 สไตล์กล่องแดชบอร์ดขั้นตอน - ฟอนต์ 42px ใหญ่ หนา มีมิติเงาซ้อนสู้แบล็กกราวด์ */
+    /* 🌌 สไตล์กล่องแดชบอร์ดขั้นตอน - ฟอนต์ 42px หนาเด่น ตีเงาหนาเพื่อสู้กับภาพลายเส้นด้านหลัง */
     .step-card {
         color: white !important;
         border-radius: 10px;
@@ -47,7 +47,7 @@ st.markdown("""
         overflow: hidden;
         box-shadow: 0 8px 20px rgba(0,0,0,0.6);
         text-align: center;
-        border: 1px solid rgba(255,255,255,0.18);
+        border: 1px solid rgba(255,255,255,0.15);
     }
     .step-card-inner {
         padding: 15px 8px;
@@ -58,7 +58,7 @@ st.markdown("""
         margin: 0;
         line-height: 1;
         color: #ffffff !important;
-        text-shadow: 2px 2px 6px rgba(0,0,0,0.85); /* เน้นเงาเข้มพิเศษให้อ่านง่าย */
+        text-shadow: 2px 2px 6px rgba(0,0,0,0.9); /* เพิ่มเงาเข้มพิเศษให้อ่านง่ายขึ้น */
     }
     .step-card-title {
         font-size: 16px; 
@@ -71,16 +71,16 @@ st.markdown("""
         overflow: hidden;
         height: 44px;
         line-height: 22px;
-        text-shadow: 1px 1px 4px rgba(0,0,0,0.75);
+        text-shadow: 1px 1px 4px rgba(0,0,0,0.8);
     }
     
-    /* ล็อกสีฟอนต์ข้อความอธิบายบนเว็บให้เป็นสีขาวสว่าง ชัดเจนทุกจุด */
+    /* ล็อกสีฟอนต์ข้อความคำอธิบายทั้งหมดให้เป็นสีขาวสว่างและอ่านง่าย */
     label, p, .stMarkdown {
         color: #ffffff !important;
-        text-shadow: 1px 1px 3px rgba(0,0,0,0.6);
+        text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
     }
     
-    /* ตัวป้ายกำกับสำหรับแถวข้อมูลบนหน้าจอมือถือ */
+    /* ป้ายกำกับข้อมูลในโหมดมือถือ */
     .mobile-label {
         display: none;
         font-weight: bold;
@@ -104,9 +104,8 @@ st.markdown("""
     }
     </style>
     
-    <!-- ส่วนหัวเว็บสไตล์ Forensic Command Center เรืองแสงดิจิทัลสีฟ้าตัดน้ำเงิน -->
-    <div style='background: linear-gradient(135deg, #051427, #0b2343); padding:20px; border-radius:12px; margin-bottom:25px; box-shadow: 0 6px 25px rgba(0,0,0,0.55); border: 1px solid rgba(0, 188, 212, 0.35);'>
-        <h2 style='color:#00bcd4; text-align:center; margin:0; font-size:26px; font-weight:700; text-shadow: 0 0 12px rgba(0,188,212,0.55); letter-spacing: 0.5px;'>ระบบฐานข้อมูลและติดตามขั้นตอนการตรวจประวัติ (สภ. ส่ง พฐ.)</h2>
+    <div style='background: linear-gradient(135deg, #041222, #0a2240); padding:20px; border-radius:12px; margin-bottom:25px; box-shadow: 0 6px 25px rgba(0,0,0,0.6); border: 1px solid rgba(0, 150, 255, 0.4);'>
+        <h2 style='color:#00bcd4; text-align:center; margin:0; font-size:26px; font-weight:700; text-shadow: 0 0 12px rgba(0,188,212,0.6); letter-spacing: 0.5px;'>ระบบฐานข้อมูลและติดตามขั้นตอนการตรวจประวัติ (สภ. ส่ง พฐ.)</h2>
     </div>
 """, unsafe_allow_html=True)
 
@@ -191,7 +190,7 @@ def confirm_delete_dialog(doc_id, name):
         if st.button("❌ ยกเลิก", use_container_width=True):
             st.rerun()
 
-# เซ็ตค่าเริ่มต้นฟอร์ม
+# เซ็ตค่าเริ่มต้นฟอร์มข้อมูล
 default_doc, default_name, default_dept, default_note = "", "", "", ""
 loaded_steps = [False] * 7
 default_title_index = 0
@@ -231,7 +230,7 @@ def on_step_change(index):
         for i in range(index, 7):
             st.session_state[f"step_idx_{i}_{st.session_state.form_key_index}"] = False
 
-# คำนวณจำนวนเคสที่อยู่ตามขั้นตอนต่างๆ (1-7)
+# คำนวณเคสตามแต่ละขั้นตอนแยกตามสถิติแดชบอร์ด
 step_counts = [0] * 7  
 for k, v in st.session_state.db_dict.items():
     v_status = v["status"]
@@ -240,24 +239,24 @@ for k, v in st.session_state.db_dict.items():
             step_counts[idx] += 1
             break
 
-# 📊 ด้านบนสุด: แดชบอร์ดสรุปขั้นตอนงานปัจจุบัน
+# 📊 ด้านบนสุด: แดชบอร์ดสรุปแบบกล่องสถิติสไตล์สืบสวน
 st.write("**📊 แดชบอร์ดสรุปขั้นตอนงานปัจจุบัน (คลิกเลือกขั้นตอนที่ต้องการตรวจสอบรายชื่อด้านล่าง)**")
 dash_cols = st.columns(7)
 card_backgrounds = [
-    "linear-gradient(135deg, #091620, #1b3545)", 
-    "linear-gradient(135deg, #091620, #1b3545)",
-    "linear-gradient(135deg, #0d253f, #184369)",
-    "linear-gradient(135deg, #0d253f, #184369)",
-    "linear-gradient(135deg, #0e2d16, #20542c)",
-    "linear-gradient(135deg, #3d0e49, #6a25a4)",
-    "linear-gradient(135deg, #004da3, #0077ff)" 
+    "linear-gradient(135deg, #0a1825, #1c384e)", 
+    "linear-gradient(135deg, #0a1825, #1c384e)",
+    "linear-gradient(135deg, #0b253c, #19456b)",
+    "linear-gradient(135deg, #0b253c, #19456b)",
+    "linear-gradient(135deg, #0a2e16, #1f572d)",
+    "linear-gradient(135deg, #3d0d4a, #6c24a3)",
+    "linear-gradient(135deg, #004da1, #0076ff)" 
 ]
 
 for idx in range(7):
     with dash_cols[idx]:
         is_active = st.session_state.filter_step_id == idx
-        # เมื่อคลิกเลือกดูขั้นตอน ขอบจะเรืองแสงนีออนสีทองสว่างจ้าทันทีเพื่อให้สังเกตง่าย
-        border_style = "border: 2.5px solid #FFD700; box-shadow: 0 0 22px rgba(255, 215, 0, 0.8);" if is_active else ""
+        # กล่องที่กดกรองดูข้อมูลอยู่ จะเปิดไฟนีออนสีทองสว่างวาบล้อมรอบทันทีเพื่อให้สังเกตได้ชัดเจน
+        border_style = "border: 2.5px solid #FFD700; box-shadow: 0 0 22px rgba(255, 215, 0, 0.85);" if is_active else ""
         
         st.markdown(f"""
             <div class="step-card" style="background: {card_backgrounds[idx]}; {border_style}">
@@ -268,7 +267,7 @@ for idx in range(7):
             </div>
         """, unsafe_allow_html=True)
         
-        # 🔍 ปุ่มเปิดกลุ่มดูข้อมูลในตาราง
+        # 🔍 ปุ่มเปิดกลุ่มดูข้อมูลในตารางคัดกรองขั้นตอน
         btn_txt = "📌 ดูกลุ่มนี้อยู่" if is_active else "🔎 คลิกดูข้อมูล"
         if st.button(btn_txt, key=f"btn_filter_step_{idx}", use_container_width=True, type="secondary" if not is_active else "primary"):
             st.session_state.filter_step_id = idx
@@ -279,7 +278,7 @@ st.write("---")
 
 col1, col2 = st.columns([1.25, 1.75])
 
-# ==================== ฝั่งซ้าย: ฟอร์มบันทึกข้อมูล ====================
+# ==================== ฝั่งซ้าย: ฟอร์มบันทึกข้อมูลและอัปเดตสถานะ ====================
 with col1:
     st.markdown("<h3 style='color:#00bcd4; text-shadow: 0 0 8px rgba(0,188,212,0.4);'>📝 บันทึก / แก้ไขข้อมูล</h3>", unsafe_allow_html=True)
     if st.session_state.edit_id:
@@ -370,11 +369,11 @@ with col1:
                 st.session_state.form_key_index += 1
                 st.rerun()
 
-# ==================== 📋 ฝั่งขวา: กล่องค้นหาและตารางรายชื่อข้อมูลภาพรวม ====================
+# ==================== 📋 ฝั่งขวา: ช่องค้นหาอัจฉริยะและตารางคัดกรองข้อมูล ====================
 with col2:
     search_query = st.text_input("พิมพ์เลขหนังสือ หรือ ชื่อบุคคลที่ต้องการค้นหาในระบบ:", placeholder="คีย์คำค้นหาที่นี่...").strip()
 
-    # แถบฟิลเตอร์แจ้งเตือนเมื่อคลิกกรองดูขั้นตอนจากแดชบอร์ดด้านบน
+    # แสดงป้ายเตือนการกรองข้อมูลจากแดชบอร์ด
     if st.session_state.filter_step_id is not None:
         active_label = step_labels[st.session_state.filter_step_id]
         st.warning(f"🎯 กำลังกรองแสดงเฉพาะรายชื่อในขั้นตอน: **{active_label}**")
@@ -399,13 +398,13 @@ with col2:
         st.markdown('</div>', unsafe_allow_html=True)
 
         for k, v in st.session_state.db_dict.items():
-            # 🔍 ตัวกรองตามขั้นตอนที่กดมาจากแดชบอร์ด
+            # 🔍 ตัวกรองคัดแยกตามกล่องแดชบอร์ดสถิติ
             if st.session_state.filter_step_id is not None:
                 selected_label = step_labels[st.session_state.filter_step_id]
                 if selected_label.split(".")[1].strip() not in v["status"] and selected_label not in v["status"]:
                     continue
 
-            # ค้นหาคำทั่วไป
+            # ตรวจสอบคำค้นหาในระบบ
             if search_query and (search_query not in str(k) and search_query not in str(v["name"]) and search_query not in str(v["dept"]) and search_query not in str(v["note"])): 
                 continue
                 
