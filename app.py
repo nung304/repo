@@ -29,10 +29,10 @@ try:
     SUPABASE_KEY = st.secrets["supabase"]["key"]
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 except Exception as e:
-    st.error("🚨 ไม่สามารถดึงรหัสเชื่อมต่อฐานข้อมูลออนไลน์ได้ กรุณาตรวจสอบการตั้งค่าหลังบ้านในระบบ Secrets")
+    st.error("🚨 ไม่สามารถดึงรหัสเชื่อมต่อฐานข้อมูลออนไลน์ได้ กรุณาตรวจสอบการตั้งค่าหลังบ้าน in ระบบ Secrets")
     st.stop()
 
-# รายชื่อขั้นตอนทั้งหมด
+# รายชื่อขั้นตอนทั้งหมด (แบบเต็ม)
 step_labels = [
     "1. รับหนังสือจากต้นสังกัด",
     "2. กรอกประวัติ พิมพ์ลายนิ้วมือกลิ้งหมึก 2 ชุด",
@@ -79,7 +79,7 @@ if not st.session_state.get("prevent_reloading", False):
                 }
         st.session_state.db_dict = new_db
     except Exception as e:
-        st.warning(f"⚠️ ดึงข้อมูลออนไลน์ขักข้องชั่วคราว: {e}")
+        st.warning(f"⚠️ ดึงข้อมูลออนไลน์ขัดข้องชั่วคราว: {e}")
 
 st.session_state["prevent_reloading"] = False
 
@@ -154,34 +154,35 @@ with col1:
                 if label in v_status: counts[idx] += 1; break
 
     st.write("**📌 กระดานสรุปสถานะปัจจุบัน (คลิกเพื่อกรองดูรายชื่อ):**")
+    
+    # 🌟 ปรับปรุง: ดึงชื่อขั้นตอนแบบเต็ม (Full Label) ไปแสดงบนปุ่มแดชบอร์ดตามสั่งครับพี่ 🌟
     d_row1_c1, d_row1_c2 = st.columns(2)
-    # 🌟 ปรับใส่ข้อความ "ดำเนินการถึง..." บนปุ่มกดแดชบอร์ดตามสั่งครับพี่ 🌟
     with d_row1_c1:
-        if st.button(f"📁 ดำเนินการถึง ขั้นตอนที่ 1 ({counts[0]} เรื่อง)", key="b1", type="primary" if st.session_state.selected_dashboard_step == 0 else "secondary", use_container_width=True):
+        if st.button(f"📁 ดำเนินการถึง {step_labels[0]} ({counts[0]} เรื่อง)", key="b1", type="primary" if st.session_state.selected_dashboard_step == 0 else "secondary", use_container_width=True):
             st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 0 else 0; st.rerun()
     with d_row1_c2:
-        if st.button(f"📝 ดำเนินการถึง ขั้นตอนที่ 2 ({counts[1]} เรื่อง)", key="b2", type="primary" if st.session_state.selected_dashboard_step == 1 else "secondary", use_container_width=True):
+        if st.button(f"📝 ดำเนินการถึง {step_labels[1]} ({counts[1]} เรื่อง)", key="b2", type="primary" if st.session_state.selected_dashboard_step == 1 else "secondary", use_container_width=True):
             st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 1 else 1; st.rerun()
 
     d_row2_c1, d_row2_c2 = st.columns(2)
     with d_row2_c1:
-        if st.button(f"✉️ ดำเนินการถึง ขั้นตอนที่ 3 ({counts[2]} เรื่อง)", key="b3", type="primary" if st.session_state.selected_dashboard_step == 2 else "secondary", use_container_width=True):
+        if st.button(f"✉️ ดำเนินการถึง {step_labels[2]} ({counts[2]} เรื่อง)", key="b3", type="primary" if st.session_state.selected_dashboard_step == 2 else "secondary", use_container_width=True):
             st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 2 else 2; st.rerun()
     with d_row2_c2:
-        if st.button(f"🚔 ดำเนินการถึง ขั้นตอนที่ 4 ({counts[3]} เรื่อง)", key="b4", type="primary" if st.session_state.selected_dashboard_step == 3 else "secondary", use_container_width=True):
+        if st.button(f"🚔 ดำเนินการถึง {step_labels[3]} ({counts[3]} เรื่อง)", key="b4", type="primary" if st.session_state.selected_dashboard_step == 3 else "secondary", use_container_width=True):
             st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 3 else 3; st.rerun()
 
     d_row3_c1, d_row3_c2 = st.columns(2)
     with d_row3_c1:
-        if st.button(f"🖨️ ดำเนินการถึง ขั้นตอนที่ 5 ({counts[4]} เรื่อง)", key="b5", type="primary" if st.session_state.selected_dashboard_step == 4 else "secondary", use_container_width=True):
+        if st.button(f"🖨️ ดำเนินการถึง {step_labels[4]} ({counts[4]} เรื่อง)", key="b5", type="primary" if st.session_state.selected_dashboard_step == 4 else "secondary", use_container_width=True):
             st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 4 else 4; st.rerun()
     with d_row3_c2:
-        if st.button(f"📤 ดำเนินการถึง ขั้นตอนที่ 6 ({counts[5]} เรื่อง)", key="b6", type="primary" if st.session_state.selected_dashboard_step == 5 else "secondary", use_container_width=True):
+        if st.button(f"📤 ดำเนินการถึง {step_labels[5]} ({counts[5]} เรื่อง)", key="b6", type="primary" if st.session_state.selected_dashboard_step == 5 else "secondary", use_container_width=True):
             st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 5 else 5; st.rerun()
 
     d_row4_c1, d_row4_c2 = st.columns(2)
     with d_row4_c1:
-        if st.button(f"🟢 เสร็จสิ้นขั้นตอนที่ 7 ({counts[6]} เรื่อง)", key="b7", type="primary" if st.session_state.selected_dashboard_step == 6 else "secondary", use_container_width=True):
+        if st.button(f"🟢 เสร็จสิ้น{step_labels[6]} ({counts[6]} เรื่อง)", key="b7", type="primary" if st.session_state.selected_dashboard_step == 6 else "secondary", use_container_width=True):
             st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 6 else 6; st.rerun()
     with d_row4_c2:
         if st.button(f"⚪ ยังไม่เริ่มดำเนินการ ({counts[7]} เรื่อง)", key="b8", type="primary" if st.session_state.selected_dashboard_step == 7 else "secondary", use_container_width=True):
