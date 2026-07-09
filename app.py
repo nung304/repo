@@ -1,70 +1,74 @@
-# ==================== ฝั่งขวา: ตารางรายชื่อสถานะ (เวอร์ชันล็อกหัวข้อตรงกับข้อมูล) ====================
-with col2:
-    st.markdown("<h4 style='font-weight:700; color:#1e3d59;'>📋 ตารางตรวจสอบสถานะข้อมูล</h4>", unsafe_allow_html=True)
-    search_query = st.text_input("🔍 ค้นหาด้วย เลขหนังสือ หรือ ชื่อ-สกุล:", placeholder="พิมพ์คำค้นหาที่นี่...").strip()
+import streamlit as st
+import pandas as pd
+from supabase import create_client, Client
+from datetime import datetime
 
-    if st.session_state.filter_step_id is not None:
-        st.info(f"🎯 กำลังแสดงขั้นตอน: {step_labels[st.session_state.filter_step_id]}")
-        if st.button("❌ ล้างตัวกรองทั้งหมด", type="secondary"):
-            st.session_state.filter_step_id = None; st.session_state["prevent_reloading"] = True; st.rerun()
+st.set_page_config(page_title="ระบบตรวจประวัติ สภ.", layout="wide")
 
-    if st.session_state.db_dict:
-        # สร้างตารางเดียวที่ครอบทั้งข้อมูลและปุ่ม เพื่อให้หัวข้อตรงกันเสมอ
-        table_html = """
-        <table class="modern-table">
-            <thead>
-                <tr>
-                    <th>เลขหนังสือ</th>
-                    <th>ชื่อ-สกุล</th>
-                    <th>หน่วยงาน</th>
-                    <th>สถานะ</th>
-                    <th>หมายเหตุ</th>
-                    <th>จัดการ</th>
-                </tr>
-            </thead>
-            <tbody>
-        """
-        
-        has_rows = False
-        for k, v in st.session_state.db_dict.items():
-            if st.session_state.filter_step_id is not None:
-                sel_lbl = step_labels[st.session_state.filter_step_id]
-                if sel_lbl.split(".")[1].strip() not in v["status"] and sel_lbl not in v["status"]: continue
+# --- CSS จัดระเบียบหน้าจอ ---
+st.markdown("""
+    <style>
+    .step-card { color: white; border-radius: 10px; padding: 15px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 10px; }
+    .modern-table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    .modern-table th { background: #1e3d59; color: white; padding: 12px; text-align: left; }
+    .modern-table td { padding: 12px; border-bottom: 1px solid #edf2f7; }
+    .m-title { display: none; }
+    @media screen and (max-width: 800px) {
+        .modern-table thead { display: none; }
+        .modern-table, .modern-table tr, .modern-table td { display: block; width: 100%; }
+        .modern-table tr { margin-bottom: 10px; border: 1px solid #eee; border-radius: 8px; padding: 10px; }
+        .m-title { display: inline-block; font-weight: bold; width: 100px; color: #1e3d59; }
+    }
+    </style>
+""", unsafe_allow_html=True)
 
-            if search_query and (search_query not in str(k) and search_query not in str(v["name"]) and search_query not in str(v["dept"]) and search_query not in str(v["note"])): 
-                continue
-            
-            has_rows = True
-            
-            # ใช้ปุ่มจริงของ Streamlit ลำบากในตาราง HTML ผมจึงใช้ Link แบบปุ่มมาทดแทนเพื่อให้กดง่ายในทุกอุปกรณ์
-            table_html += f"""
-                <tr>
-                    <td><span class="m-title">เลขหนังสือ</span><span class="m-content"><b>{k}</b></span></td>
-                    <td><span class="m-title">ชื่อ-สกุล</span><span class="m-content">{v['name']}</span></td>
-                    <td><span class="m-title">หน่วยงาน</span><span class="m-content">{v['dept'] if v['dept'] else "-"}</span></td>
-                    <td><span class="m-title">สถานะ</span><span class="m-content">{v['status']}</span></td>
-                    <td><span class="m-title">หมายเหตุ</span><span class="m-content">{v['note'] if v['note'] else "-"}</span></td>
-                    <td>
-                        <span class="m-title">เมนู</span>
-                        <span class="m-content">
-                            <a href="?edit={k}" style="text-decoration:none; padding:4px 8px; background:#edf2f7; border-radius:4px; font-size:12px;">✏️ แก้ไข</a>
-                        </span>
-                    </td>
-                </tr>
-            """
-        
-        table_html += "</tbody></table>"
-        st.markdown(table_html, unsafe_allow_html=True)
-        
-        # ตรวจสอบการกดปุ่มจาก URL Parameter (วิธีที่เสถียรที่สุดใน Streamlit HTML)
-        query_params = st.query_params
-        if "edit" in query_params:
-            st.session_state.edit_id = query_params["edit"]
-            st.session_state.form_key_index += 1
-            st.query_params.clear()
-            st.rerun()
+# --- เชื่อมต่อฐานข้อมูล ---
+try:
+    supabase = create_client(st.secrets["supabase"]["url"], st.secrets["supabase"]["key"])
+except Exception as e:
+    st.error("เชื่อมต่อฐานข้อมูลไม่ได้")
+    st.stop()
 
-        if not has_rows:
-            st.info("ไม่พบข้อมูลที่ตรงกับเงื่อนไข")
-    else:
-        st.info("ยังไม่มีข้อมูลในระบบ")
+# --- ดึงข้อมูล (ย่อให้กระชับ) ---
+if "db_dict" not in st.session_state:
+    try:
+        response = supabase.table("cases").select("*").execute()
+        st.session_state.db_dict = {str(r['doc']): r for r in response.data}
+    except:
+        st.session_state.db_dict = {}
+
+# --- หน้าจอหลัก ---
+st.title("ระบบตรวจประวัติ สภ.")
+
+# 1. แดชบอร์ด
+dash_cols = st.columns(7)
+# (ใส่โค้ดแดชบอร์ดสรุปสถิติเดิมของคุณตรงนี้)
+
+# 2. แบ่งคอลัมน์ ฟอร์มซ้าย | ตารางขวา
+left_col, right_col = st.columns([1, 2])
+
+with left_col:
+    st.subheader("📝 ฟอร์มข้อมูล")
+    # (ใส่โค้ดฟอร์มรับค่าเดิมของคุณตรงนี้)
+
+with right_col:
+    st.subheader("📋 ตารางรายการ")
+    search = st.text_input("🔍 ค้นหา...")
+    
+    # แสดงตารางแบบใหม่
+    table_html = "<table class='modern-table'><thead><tr><th>เลขที่</th><th>ชื่อ</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody>"
+    for doc, val in st.session_state.db_dict.items():
+        if search.lower() in str(val['name']).lower() or search.lower() in str(doc):
+            table_html += f"""<tr>
+                <td><span class='m-title'>เลขที่</span>{doc}</td>
+                <td><span class='m-title'>ชื่อ</span>{val['name']}</td>
+                <td><span class='m-title'>สถานะ</span>{val['status']}</td>
+                <td><a href='?edit={doc}'>✏️ แก้ไข</a></td>
+            </tr>"""
+    table_html += "</tbody></table>"
+    st.markdown(table_html, unsafe_allow_html=True)
+    
+    # รองรับการกดแก้ไข
+    if "edit" in st.query_params:
+        st.session_state.edit_id = st.query_params["edit"]
+        st.rerun()
