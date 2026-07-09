@@ -47,7 +47,7 @@ st.markdown("""
     }
     </style>
     <div style='background-color:#800000;padding:15px;border-radius:10px;margin-bottom:20px'>
-        <h2 style='color:white;text-align:center;margin:0;font-size:24px;'>ระบบฐานข้อมูลและติดตามขั้นตอนการตรวจประวัติ (สภ. ส่ง พฐ.) [ระบบฐานข้อมูลออนไลน์]</h2>
+        <h2 style='color:white;text-align:center;margin:0;font-size:24px;'>ระบบติดตามสถานะพิมพ์ลายนิ้วมือ[สอบสวน สภ.ไม้แก่น]</h2>
     </div>
 """, unsafe_allow_html=True)
 
