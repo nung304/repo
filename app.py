@@ -2,10 +2,11 @@ import streamlit as st
 import pandas as pd
 from supabase import create_client, Client
 from datetime import datetime
+import plotly.express as px  # 📊 เพิ่มไลบรารีสำหรับทำกราฟสุดทันสมัย
 
 st.set_page_config(page_title="ระบบตรวจประวัติ สภ.", layout="wide")
 
-# 🎨 อัปเกรด CSS สำหรับจัดแต่ง Dashboard และหน้าจอมือถือให้สวยงามระดับมืออาชีพ
+# 🎨 ดีไซน์ CSS สำหรับคุมโทนสี สไตล์ตาราง และรองรับหน้าจอมือถือร้อยเปอร์เซ็นต์
 st.markdown("""
     <style>
     .stTable, [data-testid="stTable"] {
@@ -20,32 +21,27 @@ st.markdown("""
         font-size: 14px !important;
     }
     
-    /* 📊 สไตล์สำหรับการ์ดแดชบอร์ดตัวใหม่ (Custom Metric Cards) */
-    .metric-card {
-        padding: 12px;
-        border-radius: 8px;
-        margin-bottom: 8px;
-        border: 1px solid #e0e0e0;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        transition: all 0.2s ease;
+    /* 📱 การ์ดสรุปยอดภาพรวมสไตล์ Minimalist */
+    .summary-card {
+        padding: 15px;
+        border-radius: 12px;
+        margin-bottom: 10px;
+        text-align: center;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.03);
+        border: 1px solid #f1f1f1;
     }
-    .metric-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
-    .metric-title {
-        font-size: 13px;
-        color: #555555;
+    .summary-title {
+        font-size: 14px;
+        color: #666666;
         font-weight: 500;
-        margin-bottom: 2px;
     }
-    .metric-value {
-        font-size: 22px;
+    .summary-value {
+        font-size: 26px;
         font-weight: bold;
-        color: #111111;
+        margin-top: 5px;
     }
     
-    /* 📱 ระบบปรับแต่งสำหรับหน้าจอมือถือ */
+    /* ระบบคอลัมน์ป้ายกำกับสำหรับหน้าจอมือถือ */
     .mobile-label {
         display: none;
         font-weight: bold;
@@ -194,13 +190,13 @@ def on_step_change(index):
         for i in range(index, 7):
             st.session_state[f"step_idx_{i}_{st.session_state.form_key_index}"] = False
 
-col1, col2 = st.columns([1.1, 1.8])
+col1, col2 = st.columns([1.2, 1.8])
 
 # ==================== ฝั่งซ้าย: แดชบอร์ดปุ่มกด + ฟอร์มบันทึกข้อมูล ====================
 with col1:
-    # 📊 1. อัปเกรดแดชบอร์ดแบบการ์ดตัวชี้วัดหรูหรา (Beautiful Interactive Metrics)
-    st.subheader("📊 ดัชนีติดตามงานภาพรวม")
+    st.subheader("📊 สรุปสถิติความคืบหน้างาน")
     
+    # คำนวณจำนวนเคสในแต่ละขั้นตอน
     counts = [0] * 8  
     for k, v in st.session_state.db_dict.items():
         v_status = v["status"]
@@ -209,69 +205,79 @@ with col1:
             for idx, label in enumerate(step_labels):
                 if label in v_status: counts[idx] += 1; break
 
-    st.write("<small style='color:gray;'>💡 แตะที่การ์ดเพื่อกรองดูรายชื่อเฉพาะสถานะนั้นได้ทันที</small>", unsafe_allow_html=True)
+    total_cases = len(st.session_state.db_dict)
+    ongoing_cases = sum(counts[0:6])
+    completed_cases = counts[6]
+    not_started_cases = counts[7]
+
+    # 🏢 1. การ์ดสรุปยอดแบบ Minimalist แยกกลุ่มสี
+    sum_c1, sum_c2, sum_c3 = st.columns(3)
+    with sum_c1:
+        st.markdown(f'<div class="summary-card" style="background-color: #f8f9fa; border-top: 4px solid #6c757d;"><div class="summary-title">⚪ ยังไม่เริ่ม</div><div class="summary-value" style="color: #6c757d;">{not_started_cases}</div></div>', unsafe_allow_html=True)
+    with sum_c2:
+        st.markdown(f'<div class="summary-card" style="background-color: #fff3cd; border-top: 4px solid #ffc107;"><div class="summary-title">🟡 กำลังทำ</div><div class="summary-value" style="color: #b58100;">{ongoing_cases}</div></div>', unsafe_allow_html=True)
+    with sum_c3:
+        st.markdown(f'<div class="summary-card" style="background-color: #d1e7dd; border-top: 4px solid #198754;"><div class="summary-title">🟢 สำเร็จ</div><div class="summary-value" style="color: #198754;">{completed_cases}</div></div>', unsafe_allow_html=True)
+
+    # 📈 2. กราฟแท่ง Interactive สวยงามทันสมัย (Plotly Horizontal Bar Chart)
+    chart_data = pd.DataFrame({
+        "ขั้นตอนการทำงาน": [
+            "⚪ ยังไม่เริ่มดำเนินการ",
+            "ขั้นที่ 1: รับหนังสือ",
+            "ขั้นที่ 2: กรอกประวัติ/พิมพ์มือ",
+            "ขั้นที่ 3: ทำหนังสือส่ง พฐ.",
+            "ขั้นที่ 4: ส่งผลตรวจ ภ.จว.",
+            "ขั้นที่ 5: ถ่ายสำเนาคู่ฉับ",
+            "ขั้นที่ 6: ทำหนังสือส่งกลับ",
+            "🟢 ขั้นที่ 7: ปิดเคสสำเร็จ"
+        ],
+        "จำนวนเรื่อง (เคส)": [counts[7], counts[0], counts[1], counts[2], counts[3], counts[4], counts[5], counts[6]],
+        "กลุ่มสถานะ": ["รอดำเนินการ", "กำลังทำ", "กำลังทำ", "กำลังทำ", "กำลังทำ", "กำลังทำ", "กำลังทำ", "เสร็จสิ้น"]
+    })
     
-    # ฟังก์ชันช่วยสร้างการ์ด HTML เพื่อลดความซ้ำซ้อนของโค้ด
-    def render_metric_card(title, count, bg_color, border_color, is_selected):
-        selected_style = f"border: 2.5px solid #800000; background-color: {bg_color};" if is_selected else f"background-color: {bg_color}; border-left: 5px solid {border_color};"
-        st.markdown(f"""
-            <div class="metric-card" style="{selected_style}">
-                <div class="metric-title">{title}</div>
-                <div class="metric-value">{count} <span style="font-size:14px; font-weight:normal; color:gray;">เรื่อง</span></div>
-            </div>
-        """, unsafe_allow_html=True)
+    # กำหนดโทนสีให้สอดคล้องกับระบบ
+    color_map = {"รอดำเนินการ": "#9e9e9e", "กำลังทำ": "#f39c12", "เสร็จสิ้น": "#27ae60"}
+    
+    fig = px.bar(
+        chart_data, 
+        y="ขั้นตอนการทำงาน", 
+        x="จำนวนเรื่อง (เคส)", 
+        color="กลุ่มสถานะ",
+        orientation='h',
+        color_discrete_map=color_map,
+        text="จำนวนเรื่อง (เคส)"
+    )
+    
+    fig.update_layout(
+        margin=dict(l=10, r=10, t=10, b=10),
+        height=260,
+        showlegend=False,
+        xaxis_title=None,
+        yaxis_title=None,
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        font=dict(size=11)
+    )
+    fig.update_traces(textposition='outside', cliponaxis=False)
+    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
-    # แถวที่ 1: งานที่ยังไม่ได้เริ่ม & งานขั้นตอนที่ 1
-    d_row1_c1, d_row1_c2 = st.columns(2)
-    with d_row1_c1:
-        render_metric_card("⚪ ยังไม่เริ่มดำเนินการ", counts[7], "#f8f9fa", "#6c757d", st.session_state.selected_dashboard_step == 7)
-        if st.button("🔎 ดูกลุ่มนี้", key="dash_btn_7", use_container_width=True):
-            st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 7 else 7; st.rerun()
-            
-    with d_row1_c2:
-        render_metric_card("📁 ขั้นที่ 1: รับหนังสือ", counts[0], "#fff3cd", "#ffc107", st.session_state.selected_dashboard_step == 0)
-        if st.button("🔎 ดูกลุ่มนี้", key="dash_btn_0", use_container_width=True):
-            st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 0 else 0; st.rerun()
-
-    # แถวที่ 2: ขั้นตอนที่ 2 & ขั้นตอนที่ 3
-    d_row2_c1, d_row2_c2 = st.columns(2)
-    with d_row2_c1:
-        render_metric_card("📝 ขั้นที่ 2: กรอกประวัติ/พิมพ์มือ", counts[1], "#fff3cd", "#ffc107", st.session_state.selected_dashboard_step == 1)
-        if st.button("🔎 ดูกลุ่มนี้", key="dash_btn_1", use_container_width=True):
-            st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 1 else 1; st.rerun()
-            
-    with d_row2_c2:
-        render_metric_card("✉️ ขั้นที่ 3: ทำหนังสือส่ง พฐ.", counts[2], "#fff3cd", "#ffc107", st.session_state.selected_dashboard_step == 2)
-        if st.button("🔎 ดูกลุ่มนี้", key="dash_btn_2", use_container_width=True):
-            st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 2 else 2; st.rerun()
-
-    # แถวที่ 3: ขั้นตอนที่ 4 & ขั้นตอนที่ 5
-    d_row3_c1, d_row3_c2 = st.columns(2)
-    with d_row3_c1:
-        render_metric_card("🚔 ขั้นที่ 4: นำส่งผลตรวจ ภ.จว.", counts[3], "#fff3cd", "#ffc107", st.session_state.selected_dashboard_step == 3)
-        if st.button("🔎 ดูกลุ่มนี้", key="dash_btn_3", use_container_width=True):
-            st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 3 else 3; st.rerun()
-            
-    with d_row3_c2:
-        render_metric_card("🖨️ ขั้นที่ 5: ถ่ายสำเนาคู่ฉบับ", counts[4], "#fff3cd", "#ffc107", st.session_state.selected_dashboard_step == 4)
-        if st.button("🔎 ดูกลุ่มนี้", key="dash_btn_4", use_container_width=True):
-            st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 4 else 4; st.rerun()
-
-    # แถวที่ 4: ขั้นตอนที่ 6 & ขั้นตอนที่ 7 (เสร็จสิ้น)
-    d_row4_c1, d_row4_c2 = st.columns(2)
-    with d_row4_c1:
-        render_metric_card("📤 ขั้นที่ 6: ทำหนังสือส่งกลับ", counts[5], "#fff3cd", "#ffc107", st.session_state.selected_dashboard_step == 5)
-        if st.button("🔎 ดูกลุ่มนี้", key="dash_btn_5", use_container_width=True):
-            st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 5 else 5; st.rerun()
-            
-    with d_row4_c2:
-        render_metric_card("🟢 ขั้นที่ 7: ปิดเคสสำเร็จ", counts[6], "#d1e7dd", "#198754", st.session_state.selected_dashboard_step == 6)
-        if st.button("🔎 ดูกลุ่มนี้", key="dash_btn_6", use_container_width=True):
-            st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 6 else 6; st.rerun()
+    # 🔍 3. ดรอปดาวน์สำหรับคลิกเลือกกรองดูข้อมูลตามขั้นตอน (ดูง่ายบนมือถือ)
+    filter_options = ["📋 แสดงข้อมูลทั้งหมดทั้งหมด"] + [f"⚪ ยังไม่เริ่มดำเนินการ ({counts[7]} เรื่อง)"] + [f"{label} ({counts[idx]} เรื่อง)" for idx, label in enumerate(step_labels)]
+    
+    selected_filter = st.selectbox("🎯 เลือกขั้นตอนเพื่อเจาะลึกกรองดูรายชื่อบุคคล:", filter_options)
+    if "แสดงข้อมูลทั้งหมด" in selected_filter:
+        st.session_state.selected_dashboard_step = None
+    elif "ยังไม่เริ่ม" in selected_filter:
+        st.session_state.selected_dashboard_step = 7
+    else:
+        for idx, label in enumerate(step_labels):
+            if label in selected_filter:
+                st.session_state.selected_dashboard_step = idx
+                break
 
     st.write("---")
 
-    # 📝 2. ฟอร์มบันทึก / แก้ไขข้อมูล
+    # 📝 4. ฟอร์มบันทึก / แก้ไขข้อมูล
     st.subheader("📝 บันทึก / แก้ไขข้อมูล")
     if st.session_state.edit_id:
         st.warning(f"⚠️ กำลังแก้ไขเลขที่หนังสือ: {st.session_state.edit_id}")
@@ -365,8 +371,10 @@ with col1:
 with col2:
     search_query = st.text_input("พิมพ์รหัสหนังสือ หรือ ชื่อบุคคลที่ต้องการค้นหา:", placeholder="พิมพ์ค้นหาที่นี่...").strip()
     
+    # สัญลักษณ์แสดงสถานะตัวกรองปัจจุบันเพื่อความชัดเจน
     if st.session_state.selected_dashboard_step is not None:
-        if st.button("❌ ล้างตัวกรองปุ่มขั้นตอน Dashboard", use_container_width=True):
+        st.warning(f"🔍 ขณะนี้ตารางกำลังเปิดระบบกรองข้อมูลเฉพาะกลุ่มอยู่")
+        if st.button("❌ เคลียร์ตัวกรอง กลับไปดูรายชื่อทั้งหมดทั้งหมด", use_container_width=True):
             st.session_state.selected_dashboard_step = None; st.rerun()
 
     st.write("---")
