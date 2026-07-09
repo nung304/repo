@@ -5,7 +5,7 @@ from datetime import datetime
 
 st.set_page_config(page_title="ระบบตรวจประวัติ สภ.", layout="wide")
 
-# 🎨 🛠️ ปรับแต่ง CSS คุมโทน "น้ำเงิน-ดำ" และจัดกล่อง 7 ขั้นตอนให้เรียงตัวสวยงาม
+# 🎨 🛠️ ปรับแต่ง CSS เน้นฟอนต์แดชบอร์ดให้ "ใหญ่ หนา คมชัด" และจัดรูปทรงกล่อง
 st.markdown("""
     <style>
     /* ตั้งค่าตารางให้รองรับมือถือลื่นไหล */
@@ -21,36 +21,38 @@ st.markdown("""
         font-size: 14px !important;
     }
     
-    /* 🌌 สไตล์กล่องแดชบอร์ดขั้นตอน (โทนน้ำเงิน-เทาดำ) */
+    /* 🌌 สไตล์กล่องแดชบอร์ดขั้นตอน - ปรับฟอนต์ให้อ่านง่ายและชัดเจนขึ้นมาก */
     .step-card {
         color: white !important;
-        border-radius: 6px;
-        margin-bottom: 10px;
+        border-radius: 8px;
+        margin-bottom: 5px;
         position: relative;
         overflow: hidden;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
         text-align: center;
+        border: 1px solid rgba(255,255,255,0.1);
     }
     .step-card-inner {
-        padding: 10px 5px;
+        padding: 12px 6px;
     }
     .step-card-value {
-        font-size: 24px;
-        font-weight: bold;
+        font-size: 32px; /* ขยายตัวเลขให้ใหญ่ชัดเจน */
+        font-weight: 800; /* ปรับให้หนาพิเศษ */
         margin: 0;
         line-height: 1.1;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
     }
     .step-card-title {
-        font-size: 11px;
-        opacity: 0.85;
-        margin-top: 3px;
-        font-weight: 400;
+        font-size: 13px; /* ขยายตัวอักษรขั้นตอน */
+        font-weight: 600; /* ปรับให้หนาขึ้นอ่านง่าย */
+        opacity: 0.95;
+        margin-top: 6px;
         display: -webkit-box;
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
-        height: 32px;
-        line-height: 16px;
+        height: 36px;
+        line-height: 18px;
     }
     
     /* ตัวป้ายกำกับสำหรับแถวข้อมูลบนหน้าจอมือถือ */
@@ -108,6 +110,8 @@ if "edit_id" not in st.session_state:
     st.session_state.edit_id = None
 if "form_key_index" not in st.session_state:
     st.session_state.form_key_index = 0
+if "filter_step_id" not in st.session_state:
+    st.session_state.filter_step_id = None  # ตัวแปรสำหรับเก็บขั้นตอนที่ถูกคลิกเลือกกรอง
 
 # 🔄 ดึงข้อมูลจากคลาวด์ออนไลน์ล่าสุด
 if not st.session_state.get("prevent_reloading", False):
@@ -210,29 +214,40 @@ for k, v in st.session_state.db_dict.items():
             step_counts[idx] += 1
             break
 
-# 📊 ด้านบนสุด: แดชบอร์ดแสดงสถานะแบบ 7 ขั้นตอน (โทนน้ำเงิน-ดำ ไล่ระดับ)
-st.write("**📊 แดชบอร์ดสรุปขั้นตอนงานปัจจุบัน**")
+# 📊 ด้านบนสุด: แดชบอร์ดแสดงสถานะแบบ 7 ขั้นตอน (โทนน้ำเงิน-ดำ ไล่ระดับ อ่านง่าย และคลิกเลือกได้)
+st.write("**📊 แดชบอร์ดสรุปขั้นตอนงานปัจจุบัน (คลิกเลือกขั้นตอนที่ต้องการดูประวัติได้เลยครับ)**")
 dash_cols = st.columns(7)
 card_backgrounds = [
-    "linear-gradient(135deg, #203a43, #0f2027)", 
-    "linear-gradient(135deg, #203a43, #0f2027)",
-    "linear-gradient(135deg, #2c5364, #203a43)",
-    "linear-gradient(135deg, #2c5364, #203a43)",
-    "linear-gradient(135deg, #1f4068, #162447)",
-    "linear-gradient(135deg, #1f4068, #162447)",
-    "#007bff" # ขั้นตอนสุดท้ายสีน้ำเงินเด่นชัดสไตล์เสร็จสิ้น
+    "linear-gradient(135deg, #1A365D, #0A192F)", 
+    "linear-gradient(135deg, #1A365D, #0A192F)",
+    "linear-gradient(135deg, #2B6CB0, #1A365D)",
+    "linear-gradient(135deg, #2B6CB0, #1A365D)",
+    "linear-gradient(135deg, #2B6CB0, #2A4365)",
+    "linear-gradient(135deg, #2C5282, #2A4365)",
+    "linear-gradient(135deg, #007bff, #004085)" # ขั้นตอนสุดท้ายสีน้ำเงินเด่นชัดเปิดไฟสำเร็จ
 ]
 
 for idx in range(7):
     with dash_cols[idx]:
+        # เช็คว่าขั้นตอนนี้กำลังโดนเลือกกรองอยู่หรือไม่เพื่อไฮไลต์ขอบสีทองเพิ่มความชัดเจน
+        is_active = st.session_state.filter_step_id == idx
+        border_style = "border: 2px solid #FFD700; box-shadow: 0 0 10px #FFD700;" if is_active else ""
+        
         st.markdown(f"""
-            <div class="step-card" style="background: {card_backgrounds[idx]};">
+            <div class="step-card" style="background: {card_backgrounds[idx]}; {border_style}">
                 <div class="step-card-inner">
                     <div class="step-card-value">{step_counts[idx]}</div>
                     <div class="step-card-title">{step_labels[idx]}</div>
                 </div>
             </div>
         """, unsafe_allow_html=True)
+        
+        # 🔍 ปุ่มมาโชว์ข้อมูลหลังจากคลิก
+        btn_txt = "📌 กำลังดูอยู่" if is_active else "🔍 คลิกดูข้อมูล"
+        if st.button(btn_txt, key=f"btn_filter_step_{idx}", use_container_width=True, type="secondary" if not is_active else "primary"):
+            st.session_state.filter_step_id = idx
+            st.session_state["prevent_reloading"] = True
+            st.rerun()
 
 st.write("---")
 
@@ -333,6 +348,15 @@ with col1:
 with col2:
     search_query = st.text_input("พิมพ์เลขหนังสือ หรือ ชื่อบุคคลที่ต้องการค้นหาในระบบ:", placeholder="คีย์คำค้นหาที่นี่...").strip()
 
+    # แสดงป้ายเตือนเมื่อพี่เปิดตัวกรองตามขั้นตอนอยู่
+    if st.session_state.filter_step_id is not None:
+        active_label = step_labels[st.session_state.filter_step_id]
+        st.warning(f"🎯 กำลังแสดงเฉพาะรายชื่อใน: **{active_label}**")
+        if st.button("❌ ล้างตัวกรอง (กลับไปแสดงทั้งหมดล่าสุด)", use_container_width=True, type="primary"):
+            st.session_state.filter_step_id = None
+            st.session_state["prevent_reloading"] = True
+            st.rerun()
+
     st.write("**📋 ตารางตรวจสอบสถานะปัจจุบัน**")
     
     if st.session_state.db_dict:
@@ -349,7 +373,16 @@ with col2:
         st.markdown('</div>', unsafe_allow_html=True)
 
         for k, v in st.session_state.db_dict.items():
-            if search_query and (search_query not in str(k) and search_query not in str(v["name"]) and search_query not in str(v["dept"]) and search_query not in str(v["note"])): continue
+            # 🔍 ระบบกรองข้อมูลตามแดชบอร์ดที่พี่คลิกเลือก
+            if st.session_state.filter_step_id is not None:
+                selected_label = step_labels[st.session_state.filter_step_id]
+                # ตรวจสอบว่าในข้อความสถานะปัจจุบันตรงกับป้ายข้อความหลักที่ถูกคลิกหรือไม่
+                if selected_label.split(".")[1].strip() not in v["status"] and selected_label not in v["status"]:
+                    continue
+
+            # ระบบค้นหาคำค้นทั่วไปแบบพิมพ์พิมพ์เอง
+            if search_query and (search_query not in str(k) and search_query not in str(v["name"]) and search_query not in str(v["dept"]) and search_query not in str(v["note"])): 
+                continue
                 
             row_cols = st.columns([1, 1.2, 1, 1.8, 1.4, 0.7, 0.7])
             
