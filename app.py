@@ -5,24 +5,24 @@ from datetime import datetime
 
 st.set_page_config(page_title="ระบบตรวจประวัติ สภ.", layout="wide")
 
-# 🎨 🛠️ อัปเดตพื้นหลังเป็นภาพห้องทำงานโลก Cyber แท้ ๆ สไตล์สืบสวนดิจิทัล
+# 🎨 🛠️ อัปเดตพื้นหลังเป็นภาพลายนิ้วมือดิจิทัล / ไบโอเมตริกซ์ ตามที่พี่ส่งมาเลยครับ
 st.markdown("""
     <style>
-    /* 🌆 เปลี่ยนเป็นภาพห้องทำงาน Workstation ในโลก Cyber ล้ำ ๆ โทนเข้ม */
+    /* 🌆 ใช้ภาพลายนิ้วมือไซเบอร์ และซ้อน Gradient มืดสีน้ำเงินเข้มเพื่อดันตัวอักษรให้ชัดเจน */
     .stApp {
-        background-image: linear-gradient(rgba(10, 20, 30, 0.88), rgba(10, 20, 30, 0.93)), 
-                          url("https://images.unsplash.com/photo-1563089145-599997674d42?q=80&w=2000");
+        background-image: linear-gradient(rgba(8, 18, 30, 0.88), rgba(6, 14, 24, 0.93)), 
+                          url("https://cdn.avadirect.com/blog/blog/wp-content/uploads/2015/07/Digital-Forensics-Workstation-1.jpg");
         background-size: cover;
         background-position: center;
         background-attachment: fixed;
     }
     
-    /* 🖥️ กล่องเนื้อหาหลักโปร่งแสง มิติมืดลึก ช่วยดันตัวหนังสือให้ลอยเด่น */
+    /* 🖥️ กล่องเนื้อหาหลักแบบกระจกโปร่งแสง (Glassmorphism) สไตล์ไซเบอร์ */
     [data-testid="stVerticalBlock"] > div {
-        background-color: rgba(6, 15, 25, 0.5);
+        background-color: rgba(6, 17, 28, 0.55);
         padding: 10px;
         border-radius: 14px;
-        border: 1px solid rgba(0, 188, 212, 0.08);
+        border: 1px solid rgba(0, 188, 212, 0.1);
     }
     
     /* ตั้งค่าตารางให้รองรับมือถือลื่นไหล */
@@ -38,14 +38,14 @@ st.markdown("""
         font-size: 14px !important;
     }
     
-    /* 🌌 สไตล์กล่องแดชบอร์ดขั้นตอน - ใหญ่ หนา และมีมิติเงาตัดกับพื้นหลังห้องทำงาน */
+    /* 🌌 สไตล์กล่องแดชบอร์ดขั้นตอน - ฟอนต์ 42px ใหญ่ หนา มีมิติเงาซ้อนสู้แบล็กกราวด์ */
     .step-card {
         color: white !important;
         border-radius: 10px;
         margin-bottom: 6px;
         position: relative;
         overflow: hidden;
-        box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.6);
         text-align: center;
         border: 1px solid rgba(255,255,255,0.18);
     }
@@ -53,15 +53,15 @@ st.markdown("""
         padding: 15px 8px;
     }
     .step-card-value {
-        font-size: 42px; /* ขนาดใหญ่พิเศษสะใจ */
-        font-weight: 900; /* หนาเข้มระดับสูงสุด */
+        font-size: 42px; 
+        font-weight: 900; 
         margin: 0;
         line-height: 1;
         color: #ffffff !important;
-        text-shadow: 2px 2px 6px rgba(0,0,0,0.8); /* ตีเงาเข้มหนาเพื่อสู้กับภาพพื้นหลัง */
+        text-shadow: 2px 2px 6px rgba(0,0,0,0.85); /* เน้นเงาเข้มพิเศษให้อ่านง่าย */
     }
     .step-card-title {
-        font-size: 16px; /* อักษรอธิบายขั้นตอนคมชัดเต็มตา */
+        font-size: 16px; 
         font-weight: 700;
         color: #ffffff !important;
         margin-top: 8px;
@@ -71,10 +71,10 @@ st.markdown("""
         overflow: hidden;
         height: 44px;
         line-height: 22px;
-        text-shadow: 1px 1px 4px rgba(0,0,0,0.7);
+        text-shadow: 1px 1px 4px rgba(0,0,0,0.75);
     }
     
-    /* ล็อกสีฟอนต์คำอธิบายทุกจุดบนหน้าเว็บให้เป็นสีขาวสว่าง ชัดเจน */
+    /* ล็อกสีฟอนต์ข้อความอธิบายบนเว็บให้เป็นสีขาวสว่าง ชัดเจนทุกจุด */
     label, p, .stMarkdown {
         color: #ffffff !important;
         text-shadow: 1px 1px 3px rgba(0,0,0,0.6);
@@ -104,8 +104,9 @@ st.markdown("""
     }
     </style>
     
-    <div style='background: linear-gradient(135deg, #051329, #0a1f3d); padding:20px; border-radius:12px; margin-bottom:25px; box-shadow: 0 6px 25px rgba(0,0,0,0.5); border: 1px solid rgba(0, 188, 212, 0.4);'>
-        <h2 style='color:#00bcd4; text-align:center; margin:0; font-size:26px; font-weight:700; text-shadow: 0 0 12px rgba(0,188,212,0.6); letter-spacing: 1px;'>ระบบฐานข้อมูลและติดตามขั้นตอนการตรวจประวัติ (สภ. ส่ง พฐ.)</h2>
+    <!-- ส่วนหัวเว็บสไตล์ Forensic Command Center เรืองแสงดิจิทัลสีฟ้าตัดน้ำเงิน -->
+    <div style='background: linear-gradient(135deg, #051427, #0b2343); padding:20px; border-radius:12px; margin-bottom:25px; box-shadow: 0 6px 25px rgba(0,0,0,0.55); border: 1px solid rgba(0, 188, 212, 0.35);'>
+        <h2 style='color:#00bcd4; text-align:center; margin:0; font-size:26px; font-weight:700; text-shadow: 0 0 12px rgba(0,188,212,0.55); letter-spacing: 0.5px;'>ระบบฐานข้อมูลและติดตามขั้นตอนการตรวจประวัติ (สภ. ส่ง พฐ.)</h2>
     </div>
 """, unsafe_allow_html=True)
 
@@ -239,24 +240,24 @@ for k, v in st.session_state.db_dict.items():
             step_counts[idx] += 1
             break
 
-# 📊 ด้านบนสุด: แดชบอร์ดสรุปแบบไซเบอร์โมเดิร์น
+# 📊 ด้านบนสุด: แดชบอร์ดสรุปขั้นตอนงานปัจจุบัน
 st.write("**📊 แดชบอร์ดสรุปขั้นตอนงานปัจจุบัน (คลิกเลือกขั้นตอนที่ต้องการตรวจสอบรายชื่อด้านล่าง)**")
 dash_cols = st.columns(7)
 card_backgrounds = [
-    "linear-gradient(135deg, #0b141a, #1f3c4d)", 
-    "linear-gradient(135deg, #0b141a, #1f3c4d)",
-    "linear-gradient(135deg, #0f2b46, #1d4e79)",
-    "linear-gradient(135deg, #0f2b46, #1d4e79)",
-    "linear-gradient(135deg, #103419, #256133)",
-    "linear-gradient(135deg, #441151, #7b2cbf)",
-    "linear-gradient(135deg, #0056b3, #0088ff)" 
+    "linear-gradient(135deg, #091620, #1b3545)", 
+    "linear-gradient(135deg, #091620, #1b3545)",
+    "linear-gradient(135deg, #0d253f, #184369)",
+    "linear-gradient(135deg, #0d253f, #184369)",
+    "linear-gradient(135deg, #0e2d16, #20542c)",
+    "linear-gradient(135deg, #3d0e49, #6a25a4)",
+    "linear-gradient(135deg, #004da3, #0077ff)" 
 ]
 
 for idx in range(7):
     with dash_cols[idx]:
         is_active = st.session_state.filter_step_id == idx
-        # กล่องที่โดนเลือกกรองข้อมูลอยู่ จะเปิดไฟนีออนสีทองสว่างวาบทันทีล้อมรอบกล่อง
-        border_style = "border: 2.5px solid #FFD700; box-shadow: 0 0 22px rgba(255, 215, 0, 0.75);" if is_active else ""
+        # เมื่อคลิกเลือกดูขั้นตอน ขอบจะเรืองแสงนีออนสีทองสว่างจ้าทันทีเพื่อให้สังเกตง่าย
+        border_style = "border: 2.5px solid #FFD700; box-shadow: 0 0 22px rgba(255, 215, 0, 0.8);" if is_active else ""
         
         st.markdown(f"""
             <div class="step-card" style="background: {card_backgrounds[idx]}; {border_style}">
@@ -373,7 +374,7 @@ with col1:
 with col2:
     search_query = st.text_input("พิมพ์เลขหนังสือ หรือ ชื่อบุคคลที่ต้องการค้นหาในระบบ:", placeholder="คีย์คำค้นหาที่นี่...").strip()
 
-    # แจ้งเตือนสว่างชัดเมื่อมีการคลิกเลือกฟิลเตอร์ขั้นตอนแดชบอร์ด
+    # แถบฟิลเตอร์แจ้งเตือนเมื่อคลิกกรองดูขั้นตอนจากแดชบอร์ดด้านบน
     if st.session_state.filter_step_id is not None:
         active_label = step_labels[st.session_state.filter_step_id]
         st.warning(f"🎯 กำลังกรองแสดงเฉพาะรายชื่อในขั้นตอน: **{active_label}**")
@@ -398,13 +399,13 @@ with col2:
         st.markdown('</div>', unsafe_allow_html=True)
 
         for k, v in st.session_state.db_dict.items():
-            # 🔍 ตัวกรองตามขั้นตอนที่คลิกเลือกจากแดชบอร์ดไซเบอร์
+            # 🔍 ตัวกรองตามขั้นตอนที่กดมาจากแดชบอร์ด
             if st.session_state.filter_step_id is not None:
                 selected_label = step_labels[st.session_state.filter_step_id]
                 if selected_label.split(".")[1].strip() not in v["status"] and selected_label not in v["status"]:
                     continue
 
-            # ตรวจสอบตัวค้นหาพิมพ์ข้อความทั่วไป
+            # ค้นหาคำทั่วไป
             if search_query and (search_query not in str(k) and search_query not in str(v["name"]) and search_query not in str(v["dept"]) and search_query not in str(v["note"])): 
                 continue
                 
