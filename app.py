@@ -5,9 +5,25 @@ from datetime import datetime
 
 st.set_page_config(page_title="ระบบตรวจประวัติ สภ.", layout="wide")
 
-# 🎨 🛠️ อัปเกรด CSS เน้นฟอนต์แดชบอร์ดให้ "ใหญ่พิเศษ หนาเข้ม คมชัดสูงสุด"
+# 🎨 🛠️ ใส่ภาพพื้นหลัง (Background) พร้อมปรับแต่งกล่องควบคุมและแดชบอร์ดให้คมชัดสูงสุด
 st.markdown("""
     <style>
+    /* 🌆 ใส่ภาพพื้นหลังระบบปฏิบัติการไซเบอร์สไตล์โมเดิร์น */
+    .stApp {
+        background-image: linear-gradient(rgba(11, 22, 34, 0.85), rgba(11, 22, 34, 0.9)), 
+                          url("https://images.unsplash.com/photo-1558494949-ef010cbdcc31?q=80&w=2000");
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+    }
+    
+    /* 🖥️ ปรับกล่องบันทึกข้อมูลและตารางฝั่งขวาให้อยู่บนพื้นผิวโปร่งแสงคมชัด */
+    [data-testid="stVerticalBlock"] > div {
+        background-color: rgba(15, 32, 39, 0.4);
+        padding: 8px;
+        border-radius: 12px;
+    }
+    
     /* ตั้งค่าตารางให้รองรับมือถือลื่นไหล */
     .stTable, [data-testid="stTable"] {
         display: block !important;
@@ -21,32 +37,32 @@ st.markdown("""
         font-size: 14px !important;
     }
     
-    /* 🌌 สไตล์กล่องแดชบอร์ดขั้นตอน - ปรับฟอนต์ให้ใหญ่พิเศษสะใจ ชัดเจนสูงสุด */
+    /* 🌌 สไตล์กล่องแดชบอร์ดขั้นตอน - ฟอนต์ใหญ่ยักษ์ หนาเข้ม และชัดเจนที่สุด */
     .step-card {
         color: white !important;
         border-radius: 10px;
         margin-bottom: 6px;
         position: relative;
         overflow: hidden;
-        box-shadow: 0 5px 12px rgba(0,0,0,0.2);
+        box-shadow: 0 6px 15px rgba(0,0,0,0.4);
         text-align: center;
-        border: 1px solid rgba(255,255,255,0.15);
+        border: 1px solid rgba(255,255,255,0.2);
     }
     .step-card-inner {
         padding: 15px 8px;
     }
     .step-card-value {
-        font-size: 42px; /* 🔥 ขยายตัวเลขให้ใหญ่ยักษ์ ชัดเจนสะใจ */
-        font-weight: 900; /* 🔥 หนาเข้มพิเศษสูงสุด (Black/Extra Bold) */
+        font-size: 42px; /* ตัวเลขใหญ่ยักษ์สะใจ */
+        font-weight: 900; /* หนาเข้มพิเศษสูงสุด */
         margin: 0;
         line-height: 1;
         color: #ffffff !important;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.5); /* เพิ่มมิติเงาให้ลอยเด่นออกมา */
+        text-shadow: 2px 2px 5px rgba(0,0,0,0.7); /* มิติเงาหนาทึบเพื่อให้อ่านง่าย */
     }
     .step-card-title {
-        font-size: 16px; /* 🔥 ขยายข้อความขั้นตอนให้อ่านง่ายเต็มตา ไม่ต้องเพ่ง */
-        font-weight: 700; /* หนาเข้มเด่นชัด */
-        color: #ffffff !important; /* ปรับเป็นสีขาวล้วน 100% เพื่อความคมชัด */
+        font-size: 16px; /* ข้อความอธิบายขั้นตอน ชัดเจนเต็มตา */
+        font-weight: 700;
+        color: #ffffff !important;
         margin-top: 8px;
         display: -webkit-box;
         -webkit-line-clamp: 2;
@@ -54,14 +70,20 @@ st.markdown("""
         overflow: hidden;
         height: 44px;
         line-height: 22px;
-        text-shadow: 1px 1px 3px rgba(0,0,0,0.4);
+        text-shadow: 1px 1px 3px rgba(0,0,0,0.6);
+    }
+    
+    /* ปรับแต่งป้ายอักษรข้อความต่างๆ บนเว็บให้เห็นชัดบนพื้นหลัง */
+    label, p, .stMarkdown {
+        color: #ffffff !important;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
     }
     
     /* ตัวป้ายกำกับสำหรับแถวข้อมูลบนหน้าจอมือถือ */
     .mobile-label {
         display: none;
         font-weight: bold;
-        color: #1e3d59;
+        color: #00bcd4;
         min-width: 90px;
     }
     
@@ -81,8 +103,9 @@ st.markdown("""
     }
     </style>
     
-    <div style='background: linear-gradient(135deg, #0f2027, #203a43, #2c5364); padding:15px; border-radius:10px; margin-bottom:20px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);'>
-        <h2 style='color:white; text-align:center; margin:0; font-size:24px; font-weight:600;'>ระบบฐานข้อมูลและติดตามขั้นตอนการตรวจประวัติ (สภ. ส่ง พฐ.)</h2>
+    <!-- ส่วนหัวเว็บโทนน้ำเงินเข้มขอบดำ เท่ ๆ สไตล์สืบสวนดิจิทัล -->
+    <div style='background: linear-gradient(135deg, #09192f, #172a45); padding:18px; border-radius:12px; margin-bottom:25px; box-shadow: 0 5px 20px rgba(0,0,0,0.4); border: 1px solid rgba(0, 188, 212, 0.3);'>
+        <h2 style='color:#00bcd4; text-align:center; margin:0; font-size:26px; font-weight:700; text-shadow: 0 0 10px rgba(0,188,212,0.5);'>ระบบฐานข้อมูลและติดตามขั้นตอนการตรวจประวัติ (สภ. ส่ง พฐ.)</h2>
     </div>
 """, unsafe_allow_html=True)
 
@@ -216,23 +239,24 @@ for k, v in st.session_state.db_dict.items():
             step_counts[idx] += 1
             break
 
-# 📊 ด้านบนสุด: แดชบอร์ดแสดงสถานะแบบ 7 ขั้นตอน (เน้นความหนาและใหญ่ระดับ HD)
+# 📊 ด้านบนสุด: แดชบอร์ดสรุปแบบเด่นชัดมีมิติเหลี่ยมเพชร
 st.write("**📊 แดชบอร์ดสรุปขั้นตอนงานปัจจุบัน (คลิกเลือกขั้นตอนที่ต้องการตรวจสอบรายชื่อด้านล่าง)**")
 dash_cols = st.columns(7)
 card_backgrounds = [
-    "linear-gradient(135deg, #1A365D, #0A192F)", 
-    "linear-gradient(135deg, #1A365D, #0A192F)",
-    "linear-gradient(135deg, #2B6CB0, #1A365D)",
-    "linear-gradient(135deg, #2B6CB0, #1A365D)",
-    "linear-gradient(135deg, #2B6CB0, #2A4365)",
-    "linear-gradient(135deg, #2C5282, #2A4365)",
+    "linear-gradient(135deg, #0f2027, #203a43)", 
+    "linear-gradient(135deg, #0f2027, #203a43)",
+    "linear-gradient(135deg, #1f4068, #162447)",
+    "linear-gradient(135deg, #1f4068, #162447)",
+    "linear-gradient(135deg, #2b580c, #335d2d)",
+    "linear-gradient(135deg, #e056fd, #9b5de5)",
     "linear-gradient(135deg, #007bff, #004085)" 
 ]
 
 for idx in range(7):
     with dash_cols[idx]:
         is_active = st.session_state.filter_step_id == idx
-        border_style = "border: 2.5px solid #FFD700; box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);" if is_active else ""
+        # ถ้ากล่องนั้นถูกเลือก จะมีขอบเรืองแสงนีออนสีทองสว่างจ้าทันที
+        border_style = "border: 2.5px solid #FFD700; box-shadow: 0 0 20px #FFD700;" if is_active else ""
         
         st.markdown(f"""
             <div class="step-card" style="background: {card_backgrounds[idx]}; {border_style}">
@@ -243,7 +267,7 @@ for idx in range(7):
             </div>
         """, unsafe_allow_html=True)
         
-        # 🔍 ปุ่มคลิกเพื่อเปิดดูข้อมูล
+        # 🔍 ปุ่มเปิดดูข้อมูล
         btn_txt = "📌 ดูกลุ่มนี้อยู่" if is_active else "🔎 คลิกดูข้อมูล"
         if st.button(btn_txt, key=f"btn_filter_step_{idx}", use_container_width=True, type="secondary" if not is_active else "primary"):
             st.session_state.filter_step_id = idx
@@ -256,7 +280,7 @@ col1, col2 = st.columns([1.25, 1.75])
 
 # ==================== ฝั่งซ้าย: ฟอร์มบันทึกข้อมูล ====================
 with col1:
-    st.subheader("📝 บันทึก / แก้ไขข้อมูล")
+    st.markdown("<h3 style='color:#00bcd4;'>📝 บันทึก / แก้ไขข้อมูล</h3>", unsafe_allow_html=True)
     if st.session_state.edit_id:
         st.warning(f"⚠️ กำลังแก้ไขเลขที่หนังสือ: {st.session_state.edit_id}")
     else:
@@ -349,16 +373,16 @@ with col1:
 with col2:
     search_query = st.text_input("พิมพ์เลขหนังสือ หรือ ชื่อบุคคลที่ต้องการค้นหาในระบบ:", placeholder="คีย์คำค้นหาที่นี่...").strip()
 
-    # แสดงแถบแจ้งเตือนสว่างวาบเมื่อพี่กรองข้อมูลตามหัวแดชบอร์ดอยู่
+    # แสดงแถบแจ้งเตือนเมื่อเปิดตัวกรองความปลอดภัยตามแดชบอร์ด
     if st.session_state.filter_step_id is not None:
         active_label = step_labels[st.session_state.filter_step_id]
-        st.warning(f"🎯 กำลังแสดงเฉพาะรายชื่อในขั้นตอน: **{active_label}**")
-        if st.button("❌ ล้างตัวกรอง (คลิกเพื่อกลับไปแสดงรายชื่อทั้งหมดล่าสุด)", use_container_width=True, type="primary"):
+        st.warning(f"🎯 กำลังกรองแสดงเฉพาะรายชื่อในขั้นตอน: **{active_label}**")
+        if st.button("❌ ล้างตัวกรอง (คลิกเพื่อแสดงข้อมูลทั้งหมดล่าสุด)", use_container_width=True, type="primary"):
             st.session_state.filter_step_id = None
             st.session_state["prevent_reloading"] = True
             st.rerun()
 
-    st.write("**📋 ตารางตรวจสอบสถานะปัจจุบัน**")
+    st.markdown("<h4 style='color:#00bcd4;'>📋 ตารางตรวจสอบสถานะข้อมูล</h4>", unsafe_allow_html=True)
     
     if st.session_state.db_dict:
         st.markdown('<div class="desktop-header">', unsafe_allow_html=True)
@@ -370,17 +394,17 @@ with col2:
         with header_cols[4]: st.markdown("**หมายเหตุและประวัติติดตาม**")
         with header_cols[5]: st.markdown("**แก้ไข**")
         with header_cols[6]: st.markdown("**ลบ**")
-        st.write("<div style='border-bottom: 2px solid #1e3d59; margin-bottom: 8px;'></div>", unsafe_allow_html=True)
+        st.write("<div style='border-bottom: 2px solid #00bcd4; margin-bottom: 8px;'></div>", unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
         for k, v in st.session_state.db_dict.items():
-            # 🔍 ระบบแมปกรองข้อมูลอัจฉริยะเมื่อกดคลิกเลือกขั้นตอนจากแดชบอร์ด
+            # 🔍 ตัวกรองตามการคลิกปุ่มบนแดชบอร์ด
             if st.session_state.filter_step_id is not None:
                 selected_label = step_labels[st.session_state.filter_step_id]
                 if selected_label.split(".")[1].strip() not in v["status"] and selected_label not in v["status"]:
                     continue
 
-            # ระบบสืบค้นด้วยคำค้นกล่องพิมพ์มือทั่วไป
+            # ตรวจสอบตัวค้นหาพิมพ์มือทั่วไป
             if search_query and (search_query not in str(k) and search_query not in str(v["name"]) and search_query not in str(v["dept"]) and search_query not in str(v["note"])): 
                 continue
                 
@@ -400,7 +424,7 @@ with col2:
                 if st.button("🗑️ ลบข้อมูล", key=f"del_btn_{k}", use_container_width=True):
                     confirm_delete_dialog(k, v["name"])
                     
-            st.markdown("<div class='row-divider' style='border-bottom: 1px solid #eee; margin-top: 4px; margin-bottom: 4px;'></div>", unsafe_allow_html=True)
+            st.markdown("<div class='row-divider' style='border-bottom: 1px solid rgba(255,255,255,0.1); margin-top: 4px; margin-bottom: 4px;'></div>", unsafe_allow_html=True)
 
         st.write("---")
         if st.button("🔄 ดึงข้อมูลเวอร์ชันล่าสุดจากฐานข้อมูลออนไลน์", use_container_width=True):
