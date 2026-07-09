@@ -107,14 +107,28 @@ def confirm_delete_dialog(doc_id, name):
 # เซ็ตค่าเริ่มต้นฟอร์ม
 default_doc, default_name, default_dept, default_note = "", "", "", ""
 loaded_steps = [False] * 7
+default_title_index = 0 # 0=นาย, 1=นางสาว, 2=นาง
 
 if st.session_state.edit_id and st.session_state.edit_id in st.session_state.db_dict:
     item = st.session_state.db_dict[st.session_state.edit_id]
     default_doc = st.session_state.edit_id
-    default_name = item["name"]
+    full_name_str = item["name"]
     default_dept = item["dept"]
     default_note = item["note"]
     loaded_steps = item["steps"]
+    
+    # แยกคำนำหน้านามเพื่อมาแสดงผลตอนกดแก้ไข
+    if full_name_str.startswith("นาย"):
+        default_title_index = 0
+        default_name = full_name_str.replace("นาย", "", 1)
+    elif full_name_str.startswith("นางสาว"):
+        default_title_index = 1
+        default_name = full_name_str.replace("นางสาว", "", 1)
+    elif full_name_str.startswith("นาง"):
+        default_title_index = 2
+        default_name = full_name_str.replace("นาง", "", 1)
+    else:
+        default_name = full_name_str
 
 def on_step_change(index):
     w_key = f"step_idx_{index}_{st.session_state.form_key_index}"
@@ -127,7 +141,7 @@ def on_step_change(index):
 
 col1, col2 = st.columns([1, 1.8])
 
-# ==================== 🌟 ฝั่งซ้าย: แดชบอร์ดปุ่มกด (อยู่แรกสุด) + ฟอร์มบันทึกข้อมูล ====================
+# ==================== ฝั่งซ้าย: แดชบอร์ดปุ่มกด + ฟอร์มบันทึกข้อมูล ====================
 with col1:
     # 📊 1. แดชบอร์ดปุ่มสรุปจำนวนเรื่อง
     st.subheader("📊 ระบบติดตามสถานะภาพรวม")
@@ -175,7 +189,7 @@ with col1:
 
     st.write("---")
 
-    # 📝 2. ฟอร์มบันทึก / แก้ไขข้อมูล (อยู่ด้านล่างแดชบอร์ด)
+    # 📝 2. ฟอร์มบันทึก / แก้ไขข้อมูล
     st.subheader("📝 บันทึก / แก้ไขข้อมูล")
     if st.session_state.edit_id:
         st.warning(f"⚠️ กำลังแก้ไขเลขที่หนังสือ: {st.session_state.edit_id} (เซฟแล้วจะทับช่องเดิมทันที)")
@@ -183,7 +197,11 @@ with col1:
         st.info("➕ กำลังเพิ่มข้อมูลรายใหม่")
 
     doc_num = st.text_input("เลขที่หนังสือรับ:", value=default_doc, key=f"doc_inp_{st.session_state.form_key_index}", disabled=(st.session_state.edit_id is not None))
-    name = st.text_input("ชื่อ-สกุล ผู้ขอตรวจสอบประวัติ:", value=default_name, key=f"name_inp_{st.session_state.form_key_index}")
+    
+    # 🌟 เพิ่มวิดเจ็ต ติ๊กเลือก นาย / นางสาว / นาง ตรงนี้ครับพี่ 🌟
+    title_prefix = st.radio("คำนำหน้านาม:", ["นาย", "นางสาว", "นาง"], index=default_title_index, horizontal=True, key=f"title_inp_{st.session_state.form_key_index}")
+    
+    name_input = st.text_input("ชื่อ-สกุล ผู้ขอตรวจสอบประวัติ (ไม่ต้องพิมพ์คำนำหน้าซ้ำ):", value=default_name, key=f"name_inp_{st.session_state.form_key_index}")
     dept = st.text_input("หน่วยงานต้นสังกัด (ที่ส่งมา):", value=default_dept, key=f"dept_inp_{st.session_state.form_key_index}")
     note = st.text_area("หมายเหตุ:", value=default_note, height=70, key=f"note_inp_{st.session_state.form_key_index}")
     
@@ -207,9 +225,12 @@ with col1:
     btn_col1, btn_col2 = st.columns([2, 1])
     with btn_col1:
         if st.button(btn_label, type="primary", use_container_width=True):
-            if doc_num and name:
+            if doc_num and name_input:
+                # 🛠️ เอาคำนำหน้า มารวมกับ ชื่อ-สกุล ก่อนส่งบันทึกครับ
+                full_name = f"{title_prefix}{name_input.strip()}"
+                
                 case_data = {
-                    "doc": str(doc_num).strip(), "name": name, "dept": dept, "status": status_text, "note": note,
+                    "doc": str(doc_num).strip(), "name": full_name, "dept": dept, "status": status_text, "note": note,
                     "s1": str(checks[0]), "s2": str(checks[1]), "s3": str(checks[2]), "s4": str(checks[3]), 
                     "s5": str(checks[4]), "s6": str(checks[5]), "s7": str(checks[6])
                 }
@@ -219,7 +240,7 @@ with col1:
                     else:
                         supabase.table("cases").insert(case_data).execute()
                     
-                    st.session_state.db_dict[str(doc_num)] = {"name": name, "dept": dept, "status": status_text, "note": note, "steps": checks}
+                    st.session_state.db_dict[str(doc_num)] = {"name": full_name, "dept": dept, "status": status_text, "note": note, "steps": checks}
                     st.session_state.edit_id = None
                     st.session_state["prevent_reloading"] = False
                     st.session_state.form_key_index += 1
