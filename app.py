@@ -127,8 +127,55 @@ def on_step_change(index):
 
 col1, col2 = st.columns([1, 1.8])
 
-# ==================== ฝั่งซ้าย: ฟอร์มบันทึก / แก้ไขข้อมูล ====================
+# ==================== 🌟 ฝั่งซ้าย: แดชบอร์ดปุ่มกด (อยู่แรกสุด) + ฟอร์มบันทึกข้อมูล ====================
 with col1:
+    # 📊 1. แดชบอร์ดปุ่มสรุปจำนวนเรื่อง
+    st.subheader("📊 ระบบติดตามสถานะภาพรวม")
+    
+    counts = [0] * 8  
+    for k, v in st.session_state.db_dict.items():
+        v_status = v["status"]
+        if "ยังไม่ได้เริ่ม" in v_status: counts[7] += 1
+        else:
+            for idx, label in enumerate(step_labels):
+                if label in v_status: counts[idx] += 1; break
+
+    st.write("**📌 กระดานสรุปสถานะปัจจุบัน (คลิกเพื่อกรองดูรายชื่อ):**")
+    d_row1_c1, d_row1_c2 = st.columns(2)
+    with d_row1_c1:
+        if st.button(f"📁 ขั้นตอนที่ 1 ({counts[0]} เรื่อง)", key="b1", type="primary" if st.session_state.selected_dashboard_step == 0 else "secondary", use_container_width=True):
+            st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 0 else 0; st.rerun()
+    with d_row1_c2:
+        if st.button(f"📝 ขั้นตอนที่ 2 ({counts[1]} เรื่อง)", key="b2", type="primary" if st.session_state.selected_dashboard_step == 1 else "secondary", use_container_width=True):
+            st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 1 else 1; st.rerun()
+
+    d_row2_c1, d_row2_c2 = st.columns(2)
+    with d_row2_c1:
+        if st.button(f"✉️ ขั้นตอนที่ 3 ({counts[2]} เรื่อง)", key="b3", type="primary" if st.session_state.selected_dashboard_step == 2 else "secondary", use_container_width=True):
+            st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 2 else 2; st.rerun()
+    with d_row2_c2:
+        if st.button(f"🚔 ขั้นตอนที่ 4 ({counts[3]} เรื่อง)", key="b4", type="primary" if st.session_state.selected_dashboard_step == 3 else "secondary", use_container_width=True):
+            st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 3 else 3; st.rerun()
+
+    d_row3_c1, d_row3_c2 = st.columns(2)
+    with d_row3_c1:
+        if st.button(f"🖨️ ขั้นตอนที่ 5 ({counts[4]} เรื่อง)", key="b5", type="primary" if st.session_state.selected_dashboard_step == 4 else "secondary", use_container_width=True):
+            st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 4 else 4; st.rerun()
+    with d_row3_c2:
+        if st.button(f"📤 ขั้นตอนที่ 6 ({counts[5]} เรื่อง)", key="b6", type="primary" if st.session_state.selected_dashboard_step == 5 else "secondary", use_container_width=True):
+            st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 5 else 5; st.rerun()
+
+    d_row4_c1, d_row4_c2 = st.columns(2)
+    with d_row4_c1:
+        if st.button(f"🟢 เสร็จสิ้นขั้นตอนที่ 7 ({counts[6]} เรื่อง)", key="b7", type="primary" if st.session_state.selected_dashboard_step == 6 else "secondary", use_container_width=True):
+            st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 6 else 6; st.rerun()
+    with d_row4_c2:
+        if st.button(f"⚪ ยังไม่เริ่มดำเนินการ ({counts[7]} เรื่อง)", key="b8", type="primary" if st.session_state.selected_dashboard_step == 7 else "secondary", use_container_width=True):
+            st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 7 else 7; st.rerun()
+
+    st.write("---")
+
+    # 📝 2. ฟอร์มบันทึก / แก้ไขข้อมูล (อยู่ด้านล่างแดชบอร์ด)
     st.subheader("📝 บันทึก / แก้ไขข้อมูล")
     if st.session_state.edit_id:
         st.warning(f"⚠️ กำลังแก้ไขเลขที่หนังสือ: {st.session_state.edit_id} (เซฟแล้วจะทับช่องเดิมทันที)")
@@ -190,54 +237,8 @@ with col1:
                 st.session_state.form_key_index += 1
                 st.rerun()
 
-# ==================== ฝั่งขวา: แดชบอร์ดปุ่มกดและตารางแสดงผลภาพรวม ====================
+# ==================== 📋 ฝั่งขวา: กล่องค้นหาและตารางรายชื่อตรวจสอบข้อมูลภาพรวม ====================
 with col2:
-    # 🌟 ย้ายส่วนคำนวณและปุ่มกด Dashboard ขึ้นมาไว้แรกสุด 🌟
-    st.subheader("📊 ระบบติดตามสถานะภาพรวม")
-    
-    counts = [0] * 8  
-    for k, v in st.session_state.db_dict.items():
-        v_status = v["status"]
-        if "ยังไม่ได้เริ่ม" in v_status: counts[7] += 1
-        else:
-            for idx, label in enumerate(step_labels):
-                if label in v_status: counts[idx] += 1; break
-
-    st.write("**📌 กระดานสรุปสถานะปัจจุบัน (คลิกเพื่อกรองดูรายชื่อ):**")
-    d_row1_c1, d_row1_c2 = st.columns(2)
-    with d_row1_c1:
-        if st.button(f"📁 ขั้นตอนที่ 1 ({counts[0]} เรื่อง)", key="b1", type="primary" if st.session_state.selected_dashboard_step == 0 else "secondary", use_container_width=True):
-            st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 0 else 0; st.rerun()
-    with d_row1_c2:
-        if st.button(f"📝 ขั้นตอนที่ 2 ({counts[1]} เรื่อง)", key="b2", type="primary" if st.session_state.selected_dashboard_step == 1 else "secondary", use_container_width=True):
-            st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 1 else 1; st.rerun()
-
-    d_row2_c1, d_row2_c2 = st.columns(2)
-    with d_row2_c1:
-        if st.button(f"✉️ ขั้นตอนที่ 3 ({counts[2]} เรื่อง)", key="b3", type="primary" if st.session_state.selected_dashboard_step == 2 else "secondary", use_container_width=True):
-            st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 2 else 2; st.rerun()
-    with d_row2_c2:
-        if st.button(f"🚔 ขั้นตอนที่ 4 ({counts[3]} เรื่อง)", key="b4", type="primary" if st.session_state.selected_dashboard_step == 3 else "secondary", use_container_width=True):
-            st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 3 else 3; st.rerun()
-
-    d_row3_c1, d_row3_c2 = st.columns(2)
-    with d_row3_c1:
-        if st.button(f"🖨️ ขั้นตอนที่ 5 ({counts[4]} เรื่อง)", key="b5", type="primary" if st.session_state.selected_dashboard_step == 4 else "secondary", use_container_width=True):
-            st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 4 else 4; st.rerun()
-    with d_row3_c2:
-        if st.button(f"📤 ขั้นตอนที่ 6 ({counts[5]} เรื่อง)", key="b6", type="primary" if st.session_state.selected_dashboard_step == 5 else "secondary", use_container_width=True):
-            st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 5 else 5; st.rerun()
-
-    d_row4_c1, d_row4_c2 = st.columns(2)
-    with d_row4_c1:
-        if st.button(f"🟢 เสร็จสิ้นขั้นตอนที่ 7 ({counts[6]} เรื่อง)", key="b7", type="primary" if st.session_state.selected_dashboard_step == 6 else "secondary", use_container_width=True):
-            st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 6 else 6; st.rerun()
-    with d_row4_c2:
-        if st.button(f"⚪ ยังไม่เริ่มดำเนินการ ({counts[7]} เรื่อง)", key="b8", type="primary" if st.session_state.selected_dashboard_step == 7 else "secondary", use_container_width=True):
-            st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 7 else 7; st.rerun()
-
-    st.write("---")
-    # 🔍 ย้ายกล่องค้นหาและตารางตรวจสอบสถานะมาไว้ด้านล่างแดชบอร์ด
     search_query = st.text_input("พิมพ์รหัสหนังสือ หรือ ชื่อบุคคลที่ต้องการค้นหา:", placeholder="พิมพ์ค้นหาที่นี่...").strip()
     
     if st.session_state.selected_dashboard_step is not None:
