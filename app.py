@@ -5,6 +5,7 @@ from datetime import datetime
 
 st.set_page_config(page_title="ระบบตรวจประวัติ สภ.", layout="wide")
 
+# 🎨 เพิ่ม CSS Media Query เพื่อรองรับหน้าจอมือถือให้อ่านง่าย
 st.markdown("""
     <style>
     .stTable, [data-testid="stTable"] {
@@ -17,6 +18,32 @@ st.markdown("""
     .stButton > button {
         padding: 4px 10px !important;
         font-size: 14px !important;
+    }
+    
+    /* 📱 ระบบปรับแต่งสำหรับหน้าจอมือถือ */
+    .mobile-label {
+        display: none;
+        font-weight: bold;
+        color: #800000;
+        min-width: 90px;
+    }
+    
+    @media (max-width: 768px) {
+        /* ซ่อนหัวตารางบนเดสก์ท็อปเมื่อเปิดในมือถือ */
+        .desktop-header {
+            display: none !important;
+        }
+        /* เปิดใช้งานป้ายกำกับสำหรับมือถือ */
+        .mobile-label {
+            display: inline-block !important;
+            margin-right: 5px;
+        }
+        /* ปรับแต่งเส้นคั่นระหว่างบุคคลให้หนาขึ้นในมือถือเพื่อแยกเป็นรายคนชัดเจน */
+        .row-divider {
+            border-bottom: 2px solid #800000 !important;
+            margin-top: 12px !important;
+            margin-bottom: 12px !important;
+        }
     }
     </style>
     <div style='background-color:#800000;padding:15px;border-radius:10px;margin-bottom:20px'>
@@ -116,7 +143,6 @@ if st.session_state.edit_id and st.session_state.edit_id in st.session_state.db_
     full_name_str = item["name"]
     default_dept = item["dept"]
     
-    # ดึงเฉพาะข้อความหมายเหตุจริง ๆ ออกมาจาก String แท็กวันที่
     raw_note = item["note"]
     if " [รับเรื่อง:" in raw_note:
         default_note = raw_note.split(" [รับเรื่อง:")[0].strip()
@@ -150,7 +176,6 @@ col1, col2 = st.columns([1, 1.8])
 
 # ==================== ฝั่งซ้าย: แดชบอร์ดปุ่มกด + ฟอร์มบันทึกข้อมูล ====================
 with col1:
-    # 📊 1. แดชบอร์ดปุ่มสรุปจำนวนเรื่อง
     st.subheader("📊 ระบบติดตามสถานะภาพรวม")
     
     counts = [0] * 8  
@@ -234,21 +259,16 @@ with col1:
                 full_name = f"{title_prefix}{name_input.strip()}"
                 today_str = datetime.today().strftime('%Y-%m-%d')
                 
-                # 🛠️ จัดการระบบแสตมป์วันที่อัตโนมัติ
                 if st.session_state.edit_id:
-                    # ถ้าเป็นงานเดิมที่เคยบันทึกไว้ ให้ดึงวันที่รับเรื่องเดิมมาใช้
                     old_item = st.session_state.db_dict.get(st.session_state.edit_id, {})
                     old_note_str = old_item.get("note", "")
                     
-                    # ค้นหาวันที่รับเรื่องเดิม
                     if "[รับเรื่อง:" in old_note_str:
                         start_date = old_note_str.split("[รับเรื่อง:")[1].split("]")[0].strip()
                     else:
                         start_date = today_str
                         
-                    # ตรวจสอบสถานะว่าสำเร็จ (ขั้นตอนที่ 7) หรือยัง
                     if checks[6]:
-                        # ค้นหาวันที่สำเร็จเดิม หรือสลอตวันนี้ถ้าเพิ่งสำเร็จ
                         if "[สำเร็จ:" in old_note_str:
                             end_date = old_note_str.split("[สำเร็จ:")[1].split("]")[0].strip()
                             if end_date == "-":
@@ -258,11 +278,9 @@ with col1:
                     else:
                         end_date = "-"
                 else:
-                    # ถ้าเป็นเรื่องที่เพิ่มใหม่สดๆ ร้อนๆ
                     start_date = today_str
                     end_date = today_str if checks[6] else "-"
                 
-                # ประกอบข้อมูลวันที่รวมเข้ากับฟิลด์หมายเหตุ
                 final_note = f"{note.strip()} [รับเรื่อง: {start_date}] [สำเร็จ: {end_date}]"
                 
                 case_data = {
@@ -306,6 +324,8 @@ with col2:
     st.write("**📋 ตารางตรวจสอบสถานะปัจจุบัน**")
     
     if st.session_state.db_dict:
+        # ใส่คลาสครอบหัวตารางเดสก์ท็อปไว้ เพื่อให้ระบบสั่ง "ซ่อน" อัตโนมัติเมื่อดูในมือถือ
+        st.markdown('<div class="desktop-header">', unsafe_allow_html=True)
         header_cols = st.columns([1, 1.2, 1, 1.8, 1.4, 0.7, 0.7])
         with header_cols[0]: st.markdown("**เลขหนังสือ**")
         with header_cols[1]: st.markdown("**ชื่อ-สกุล**")
@@ -315,6 +335,7 @@ with col2:
         with header_cols[5]: st.markdown("**แก้ไข**")
         with header_cols[6]: st.markdown("**ลบ**")
         st.write("<div style='border-bottom: 2px solid #800000; margin-bottom: 8px;'></div>", unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
         for k, v in st.session_state.db_dict.items():
             s_idx = 7 if "ยังไม่ได้เริ่ม" in v["status"] else next((i for i, x in enumerate(step_labels) if x in v["status"]), None)
@@ -322,21 +343,23 @@ with col2:
             if search_query and (search_query not in str(k) and search_query not in str(v["name"]) and search_query not in str(v["dept"]) and search_query not in str(v["note"])): continue
                 
             row_cols = st.columns([1, 1.2, 1, 1.8, 1.4, 0.7, 0.7])
-            with row_cols[0]: st.write(k)
-            with row_cols[1]: st.write(v["name"])
-            with row_cols[2]: st.write(v["dept"])
-            with row_cols[3]: st.write(v["status"])
-            with row_cols[4]: st.write(v["note"] if v["note"] else "-")
+            
+            # ใช้ <span> คลาส mobile-label นำหน้าเนื้อหา เพื่อให้แสดงข้อความกำกับหัวข้อเมื่อเปิดดูผ่านมือถือแบบการ์ดครับพี่
+            with row_cols[0]: st.markdown(f"<span class='mobile-label'>เลขหนังสือ:</span>{k}", unsafe_allow_html=True)
+            with row_cols[1]: st.markdown(f"<span class='mobile-label'>ชื่อ-สกุล:</span>{v['name']}", unsafe_allow_html=True)
+            with row_cols[2]: st.markdown(f"<span class='mobile-label'>ต้นสังกัด:</span>{v['dept']}", unsafe_allow_html=True)
+            with row_cols[3]: st.markdown(f"<span class='mobile-label'>สถานะปัจจุบัน:</span>{v['status']}", unsafe_allow_html=True)
+            with row_cols[4]: st.markdown(f"<span class='mobile-label'>หมายเหตุ:</span>{v['note'] if v['note'] else '-'}", unsafe_allow_html=True)
             
             with row_cols[5]:
-                if st.button("✏️", key=f"edit_btn_{k}", use_container_width=True):
+                if st.button("✏️ แก้ไขข้อมูล", key=f"edit_btn_{k}", use_container_width=True):
                     st.session_state.edit_id = k
                     st.session_state.form_key_index += 1; st.rerun()
             with row_cols[6]:
-                if st.button("🗑️", key=f"del_btn_{k}", use_container_width=True):
+                if st.button("🗑️ ลบข้อมูล", key=f"del_btn_{k}", use_container_width=True):
                     confirm_delete_dialog(k, v["name"])
                     
-            st.write("<div style='border-bottom: 1px solid #eee; margin-top: 4px; margin-bottom: 4px;'></div>", unsafe_allow_html=True)
+            st.markdown("<div class='row-divider' style='border-bottom: 1px solid #eee; margin-top: 4px; margin-bottom: 4px;'></div>", unsafe_allow_html=True)
 
         st.write("---")
         if st.button("🔄 ดึงข้อมูลเวอร์ชันล่าสุดจากฐานข้อมูลออนไลน์", use_container_width=True):
