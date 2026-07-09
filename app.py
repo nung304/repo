@@ -5,44 +5,23 @@ from datetime import datetime
 
 st.set_page_config(page_title="ระบบตรวจประวัติ สภ.", layout="wide")
 
-# 🎨 🛠️ ปรับกลับเป็นพื้นหลังสีขาวสว่าง คลีน ๆ ปกติเรียบร้อยครับ
+# 🎨 🛠️ ปรับแต่งสไตล์ให้คลีน โมเดิร์น และจัดระเบียบตารางไม่ให้มั่วซ้อนกัน
 st.markdown("""
     <style>
-    /* 🌆 พื้นหลังสีขาวสว่างปกติ */
+    /* พื้นหลังหลักขาวสะอาดตา */
     .stApp {
         background-color: #ffffff;
-        color: #333333;
+        color: #2d3748;
     }
     
-    /* 🖥️ กล่องเนื้อหาหลัก */
-    [data-testid="stVerticalBlock"] > div {
-        background-color: #f8f9fa;
-        padding: 10px;
-        border-radius: 14px;
-        border: 1px solid #e9ecef;
-    }
-    
-    /* ตั้งค่าตารางให้รองรับมือถือลื่นไหล */
-    .stTable, [data-testid="stTable"] {
-        display: block !important;
-        width: 100% !important;
-        overflow-x: auto !important;
-        white-space: nowrap !important;
-        -webkit-overflow-scrolling: touch !important;
-    }
-    .stButton > button {
-        padding: 4px 10px !important;
-        font-size: 14px !important;
-    }
-    
-    /* 📊 สไตล์กล่องแดชบอร์ดขั้นตอน - ตัวเลข 42px ใหญ่ หนา เด่นชัดบนพื้นหลังสว่าง */
+    /* สไตล์กล่องแดชบอร์ดขั้นตอน */
     .step-card {
         color: white !important;
         border-radius: 10px;
         margin-bottom: 6px;
         position: relative;
         overflow: hidden;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.06);
         text-align: center;
     }
     .step-card-inner {
@@ -56,7 +35,7 @@ st.markdown("""
         color: #ffffff !important;
     }
     .step-card-title {
-        font-size: 16px; 
+        font-size: 14px; 
         font-weight: 700;
         color: #ffffff !important;
         margin-top: 8px;
@@ -68,38 +47,57 @@ st.markdown("""
         line-height: 22px;
     }
     
-    /* ล็อกสีฟอนต์ข้อความทั่วไปในระบบ */
-    label, p, .stMarkdown {
-        color: #333333 !important;
+    /* 📋 จัดโครงสร้างตารางข้อมูลให้โมเดิร์นและสะอาดตา */
+    .table-container {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+        background-color: #ffffff;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
     
-    /* ป้ายกำกับข้อมูลในโหมดมือถือ */
-    .mobile-label {
-        display: none;
-        font-weight: bold;
-        color: #0066cc;
-        min-width: 90px;
+    /* หัวตารางสีกรมท่า สวยเฉียบ */
+    .table-header {
+        background: linear-gradient(135deg, #1e3d59, #2b5c8f);
+        color: #ffffff !important;
+        font-weight: 600;
+        padding: 12px 16px;
+        text-align: left;
+        font-size: 15px;
     }
     
-    @media (max-width: 768px) {
-        .desktop-header {
-            display: none !important;
-        }
-        .mobile-label {
-            display: inline-block !important;
-            margin-right: 5px;
-        }
-        .row-divider {
-            border-bottom: 2px solid #dee2e6 !important;
-            margin-top: 12px !important;
-            margin-bottom: 12px !important;
-        }
+    /* รายละเอียดแถวข้อมูล */
+    .table-row {
+        border-bottom: 1px solid #edf2f7;
+        transition: background-color 0.2s;
+    }
+    .table-row:hover {
+        background-color: #f7fafc;
+    }
+    .table-cell {
+        padding: 14px 16px;
+        font-size: 14px;
+        color: #2d3748;
+        vertical-align: middle;
+    }
+    
+    /* กำหนดปุ่มให้ดูเรียบร้อย ขนาดพอดี */
+    .stButton > button {
+        border-radius: 6px !important;
+        padding: 4px 12px !important;
+        font-size: 13px !important;
+    }
+    
+    label, p {
+        color: #2d3748 !important;
     }
     </style>
     
-    <!-- ส่วนหัวเว็บบาร์โทนสีกรมท่า สุภาพ เรียบร้อย ชัดเจน -->
+    <!-- ส่วนหัวเว็บบาร์โทนสีกรมท่า-เขียวมิ้นต์ สไตล์โมเดิร์น -->
     <div style='background: linear-gradient(135deg, #1e3d59, #17b890); padding:20px; border-radius:12px; margin-bottom:25px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);'>
-        <h2 style='color:#ffffff; text-align:center; margin:0; font-size:26px; font-weight:700;'>ระบบฐานข้อมูลและติดตามขั้นตอนการตรวจประวัติ (สภ. ส่ง พฐ.)</h2>
+        <h2 style='color:#ffffff; text-align:center; margin:0; font-size:25px; font-weight:700; letter-spacing: 0.5px;'>ระบบฐานข้อมูลและติดตามขั้นตอนการตรวจประวัติ (สภ. ส่ง พฐ.)</h2>
     </div>
 """, unsafe_allow_html=True)
 
@@ -109,10 +107,10 @@ try:
     SUPABASE_KEY = st.secrets["supabase"]["key"]
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 except Exception as e:
-    st.error("🚨 ไม่สามารถดึงรหัสเชื่อมต่อฐานข้อมูลออนไลน์ได้ กรุณาตรวจสอบการตั้งค่าหลังบ้านในระบบ Secrets")
+    st.error("🚨 ไม่สามารถดึงรหัสเชื่อมต่อฐานข้อมูลออนไลน์ได้ กรุณาตรวจสอบในระบบ Secrets")
     st.stop()
 
-# รายชื่อขั้นตอนทั้งหมด (แบบเต็ม)
+# รายชื่อขั้นตอนทั้งหมด
 step_labels = [
     "1. รับหนังสือจากต้นสังกัด",
     "2. กรอกประวัติ พิมพ์มือ 2 ชุด",
@@ -163,12 +161,11 @@ if not st.session_state.get("prevent_reloading", False):
 
 st.session_state["prevent_reloading"] = False
 
-# 🗑️ บล็อกยืนยันการลบข้อมูลออกจากคลาวด์
+# 🗑️ ยืนยันการลบข้อมูล
 @st.dialog("⚠️ ยืนยันการลบข้อมูลถาวร")
 def confirm_delete_dialog(doc_id, name):
     st.write(f"คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลของ **{name}** (เลขที่หนังสือ: {doc_id})?")
-    st.error("🚨 ระบบจะลบแถวข้อมูลรายนี้ออกจากฐานข้อมูลออนไลน์ถาวรทันที!")
-    st.write("")
+    st.error("🚨 ระบบจะลบข้อมูลนี้ออกจากฐานข้อมูลออนไลน์ถาวร!")
     c1, c2 = st.columns(2)
     with c1:
         if st.button("🚨 ยืนยันลบข้อมูล", type="primary", use_container_width=True):
@@ -203,28 +200,19 @@ if st.session_state.edit_id and st.session_state.edit_id in st.session_state.db_
         
     loaded_steps = item["steps"]
     
-    if full_name_str.startswith("นาย"):
-        default_title_index = 0
-        default_name = full_name_str.replace("นาย", "", 1)
-    elif full_name_str.startswith("นางสาว"):
-        default_title_index = 1
-        default_name = full_name_str.replace("นางสาว", "", 1)
-    elif full_name_str.startswith("นาง"):
-        default_title_index = 2
-        default_name = full_name_str.replace("นาง", "", 1)
-    else:
-        default_name = full_name_str
+    if full_name_str.startswith("นาย"): default_title_index = 0; default_name = full_name_str.replace("นาย", "", 1)
+    elif full_name_str.startswith("นางสาว"): default_title_index = 1; default_name = full_name_str.replace("นางสาว", "", 1)
+    elif full_name_str.startswith("นาง"): default_title_index = 2; default_name = full_name_str.replace("นาง", "", 1)
+    else: default_name = full_name_str
 
 def on_step_change(index):
     w_key = f"step_idx_{index}_{st.session_state.form_key_index}"
     if st.session_state.get(w_key, False):
-        for i in range(index + 1):
-            st.session_state[f"step_idx_{i}_{st.session_state.form_key_index}"] = True
+        for i in range(index + 1): st.session_state[f"step_idx_{i}_{st.session_state.form_key_index}"] = True
     else:
-        for i in range(index, 7):
-            st.session_state[f"step_idx_{i}_{st.session_state.form_key_index}"] = False
+        for i in range(index, 7): st.session_state[f"step_idx_{i}_{st.session_state.form_key_index}"] = False
 
-# คำนวณเคสตามแต่ละขั้นตอนแยกตามสถิติแดชบอร์ด
+# คำนวณเคสตามแต่ละขั้นตอน
 step_counts = [0] * 7  
 for k, v in st.session_state.db_dict.items():
     v_status = v["status"]
@@ -234,23 +222,19 @@ for k, v in st.session_state.db_dict.items():
             break
 
 # 📊 ด้านบนสุด: แดชบอร์ดสรุปขั้นตอนงานปัจจุบัน
-st.write("**📊 แดชบอร์ดสรุปขั้นตอนงานปัจจุบัน (คลิกเลือกขั้นตอนที่ต้องการตรวจสอบรายชื่อด้านล่าง)**")
+st.write("**📊 แดชบอร์ดสรุปขั้นตอนงานปัจจุบัน (คลิกเพื่อกรองรายชื่อ)**")
 dash_cols = st.columns(7)
 card_backgrounds = [
-    "linear-gradient(135deg, #4a69bd, #1e3d59)", 
-    "linear-gradient(135deg, #4a69bd, #1e3d59)",
-    "linear-gradient(135deg, #1e3d59, #17b890)",
-    "linear-gradient(135deg, #1e3d59, #17b890)",
-    "linear-gradient(135deg, #2ecc71, #27ae60)",
-    "linear-gradient(135deg, #9b59b6, #8e44ad)",
+    "linear-gradient(135deg, #4a69bd, #1e3d59)", "linear-gradient(135deg, #4a69bd, #1e3d59)",
+    "linear-gradient(135deg, #1e3d59, #17b890)", "linear-gradient(135deg, #1e3d59, #17b890)",
+    "linear-gradient(135deg, #2ecc71, #27ae60)", "linear-gradient(135deg, #9b59b6, #8e44ad)",
     "linear-gradient(135deg, #e74c3c, #c0392b)" 
 ]
 
 for idx in range(7):
     with dash_cols[idx]:
         is_active = st.session_state.filter_step_id == idx
-        # เมื่อคลิกเลือกดูขั้นตอน จะเน้นกรอบหนาสีทองส่องประกายชัดเจน
-        border_style = "border: 3px solid #ffcc00; box-shadow: 0 0 15px rgba(255, 204, 0, 0.6);" if is_active else ""
+        border_style = "border: 3px solid #ffcc00; box-shadow: 0 0 15px rgba(255, 204, 0, 0.5);" if is_active else ""
         
         st.markdown(f"""
             <div class="step-card" style="background: {card_backgrounds[idx]}; {border_style}">
@@ -261,8 +245,7 @@ for idx in range(7):
             </div>
         """, unsafe_allow_html=True)
         
-        # 🔍 ปุ่มเปิดกลุ่มดูข้อมูลในตารางคัดกรองขั้นตอน
-        btn_txt = "📌 ดูกลุ่มนี้อยู่" if is_active else "🔎 คลิกดูข้อมูล"
+        btn_txt = "📌 ดูกลุ่มนี้" if is_active else "🔎 คลิกกรอง"
         if st.button(btn_txt, key=f"btn_filter_step_{idx}", use_container_width=True, type="secondary" if not is_active else "primary"):
             st.session_state.filter_step_id = idx
             st.session_state["prevent_reloading"] = True
@@ -270,158 +253,135 @@ for idx in range(7):
 
 st.write("---")
 
-col1, col2 = st.columns([1.25, 1.75])
+col1, col2 = st.columns([1.1, 1.9])
 
-# ==================== ฝั่งซ้าย: ฟอร์มบันทึกข้อมูลและอัปเดตสถานะ ====================
+# ==================== ฝั่งซ้าย: ฟอร์มบันทึกข้อมูล ====================
 with col1:
-    st.markdown("<h3>📝 บันทึก / แก้ไขข้อมูล</h3>", unsafe_allow_html=True)
-    if st.session_state.edit_id:
-        st.warning(f"⚠️ กำลังแก้ไขเลขที่หนังสือ: {st.session_state.edit_id}")
-    else:
-        st.info("➕ เพิ่มข้อมูลรายใหม่ (ระบบลงบันทึกรับเรื่องวันนี้อัตโนมัติ)")
+    st.markdown("<h4 style='font-weight:700; color:#1e3d59;'>📝 ฟอร์มบันทึกข้อมูล</h4>", unsafe_allow_html=True)
+    with st.container(border=True):
+        if st.session_state.edit_id:
+            st.warning(f"กำลังแก้ไขเลขที่หนังสือ: {st.session_state.edit_id}")
+        
+        doc_num = st.text_input("เลขที่หนังสือรับ:", value=default_doc, key=f"doc_inp_{st.session_state.form_key_index}", disabled=(st.session_state.edit_id is not None))
+        title_prefix = st.radio("คำนำหน้านาม:", ["นาย", "นางสาว", "นาง"], index=default_title_index, horizontal=True, key=f"title_inp_{st.session_state.form_key_index}")
+        name_input = st.text_input("ชื่อ-สกุล ผู้ขอตรวจประวัติ:", value=default_name, key=f"name_inp_{st.session_state.form_key_index}")
+        dept = st.text_input("หน่วยงานต้นสังกัด:", value=default_dept, key=f"dept_inp_{st.session_state.form_key_index}")
+        note = st.text_area("หมายเหตุเพิ่มเติม:", value=default_note, height=70, key=f"note_inp_{st.session_state.form_key_index}")
+        
+        st.write("**ขั้นตอนที่ดำเนินการเสร็จสิ้น:**")
+        for idx, label in enumerate(step_labels):
+            st.checkbox(label, value=loaded_steps[idx], key=f"step_idx_{idx}_{st.session_state.form_key_index}", on_change=on_step_change, args=(idx,))
 
-    doc_num = st.text_input("เลขที่หนังสือรับ:", value=default_doc, key=f"doc_inp_{st.session_state.form_key_index}", disabled=(st.session_state.edit_id is not None))
-    title_prefix = st.radio("คำนำหน้านาม:", ["นาย", "นางสาว", "นาง"], index=default_title_index, horizontal=True, key=f"title_inp_{st.session_state.form_key_index}")
-    name_input = st.text_input("ชื่อ-สกุล ผู้ขอตรวจสอบประวัติ (ไม่ต้องพิมพ์คำนำหน้าซ้ำ):", value=default_name, key=f"name_inp_{st.session_state.form_key_index}")
-    dept = st.text_input("หน่วยงานต้นสังกัด (ที่ส่งมา):", value=default_dept, key=f"dept_inp_{st.session_state.form_key_index}")
-    note = st.text_area("หมายเหตุเพิ่มเติม:", value=default_note, height=70, key=f"note_inp_{st.session_state.form_key_index}")
-    
-    st.write("**ติ๊กเลือกขั้นตอนที่ทำเสร็จแล้ว:**")
-    for idx, label in enumerate(step_labels):
-        st.checkbox(label, value=loaded_steps[idx], key=f"step_idx_{idx}_{st.session_state.form_key_index}", on_change=on_step_change, args=(idx,))
+        checks = [st.session_state.get(f"step_idx_{i}_{st.session_state.form_key_index}", False) for i in range(7)]
+        status_text = "⚪ ยังไม่ได้เริ่ม"
+        if checks[6]: status_text = f"🟢 {step_labels[6]}"
+        else:
+            for idx in range(6, -1, -1):
+                if checks[idx]: status_text = f"🟡 {step_labels[idx]}"; break
 
-    checks = [st.session_state.get(f"step_idx_{i}_{st.session_state.form_key_index}", False) for i in range(7)]
-    status_text = "⚪ ยังไม่ได้เริ่ม"
-    if checks[6]:
-        status_text = f"🟢 {step_labels[6]}"
-    else:
-        for idx in range(6, -1, -1):
-            if checks[idx]:
-                status_text = f"🟡 {step_labels[idx]}"
-                break
-
-    btn_label = "💾 อัปเดตทับข้อมูลแถวเดิม" if st.session_state.edit_id else "💾 บันทึกข้อมูลลงคลาวด์"
-    msg_slot = st.empty()
-    
-    btn_col1, btn_col2 = st.columns([2, 1])
-    with btn_col1:
-        if st.button(btn_label, type="primary", use_container_width=True):
-            if doc_num and name_input:
-                full_name = f"{title_prefix}{name_input.strip()}"
-                today_str = datetime.today().strftime('%Y-%m-%d')
-                
-                if st.session_state.edit_id:
-                    old_item = st.session_state.db_dict.get(st.session_state.edit_id, {})
-                    old_note_str = old_item.get("note", "")
+        btn_label = "💾 อัปเดตข้อมูลเดิม" if st.session_state.edit_id else "💾 บันทึกข้อมูลลงคลาวด์"
+        
+        b_col1, b_col2 = st.columns([2, 1])
+        with b_col1:
+            if st.button(btn_label, type="primary", use_container_width=True):
+                if doc_num and name_input:
+                    full_name = f"{title_prefix}{name_input.strip()}"
+                    today_str = datetime.today().strftime('%Y-%m-%d')
                     
-                    if "[รับเรื่อง:" in old_note_str:
-                        start_date = old_note_str.split("[รับเรื่อง:")[1].split("]")[0].strip()
+                    if st.session_state.edit_id:
+                        old_item = st.session_state.db_dict.get(st.session_state.edit_id, {})
+                        old_note_str = old_item.get("note", "")
+                        start_date = old_note_str.split("[รับเรื่อง:")[1].split("]")[0].strip() if "[รับเรื่อง:" in old_note_str else today_str
+                        end_date = today_str if checks[6] else "-"
                     else:
                         start_date = today_str
-                        
-                    if checks[6]:
-                        if "[สำเร็จ:" in old_note_str:
-                            end_date = old_note_str.split("[สำเร็จ:")[1].split("]")[0].strip()
-                            if end_date == "-":
-                                end_date = today_str
-                        else:
-                            end_date = today_str
-                    else:
-                        end_date = "-"
-                else:
-                    start_date = today_str
-                    end_date = today_str if checks[6] else "-"
-                
-                final_note = f"{note.strip()} [รับเรื่อง: {start_date}] [สำเร็จ: {end_date}]"
-                
-                case_data = {
-                    "doc": str(doc_num).strip(), "name": full_name, "dept": dept, "status": status_text, "note": final_note,
-                    "s1": str(checks[0]), "s2": str(checks[1]), "s3": str(checks[2]), "s4": str(checks[3]), 
-                    "s5": str(checks[4]), "s6": str(checks[5]), "s7": str(checks[6])
-                }
-                try:
-                    if st.session_state.edit_id:
-                        supabase.table("cases").update(case_data).eq("doc", st.session_state.edit_id).execute()
-                    else:
-                        supabase.table("cases").insert(case_data).execute()
+                        end_date = today_str if checks[6] else "-"
                     
-                    st.session_state.db_dict[str(doc_num)] = {"name": full_name, "dept": dept, "status": status_text, "note": final_note, "steps": checks}
-                    st.session_state.edit_id = None
-                    st.session_state["prevent_reloading"] = False
-                    st.session_state.form_key_index += 1
-                    st.rerun()
-                except Exception as e:
-                    msg_slot.error(f"เกิดข้อผิดพลาดในการบันทึก: {e}")
-            else:
-                msg_slot.error("กรุณากรอกข้อมูลเลขที่หนังสือและชื่อผู้ขอตรวจให้ครบถ้วน")
-                
-    with btn_col2:
-        if st.session_state.edit_id:
-            if st.button("❌ ยกเลิก", use_container_width=True):
+                    final_note = f"{note.strip()} [รับเรื่อง: {start_date}] [สำเร็จ: {end_date}]"
+                    case_data = {
+                        "doc": str(doc_num).strip(), "name": full_name, "dept": dept, "status": status_text, "note": final_note,
+                        "s1": str(checks[0]), "s2": str(checks[1]), "s3": str(checks[2]), "s4": str(checks[3]), 
+                        "s5": str(checks[4]), "s6": str(checks[5]), "s7": str(checks[6])
+                    }
+                    try:
+                        if st.session_state.edit_id:
+                            supabase.table("cases").update(case_data).eq("doc", st.session_state.edit_id).execute()
+                        else:
+                            supabase.table("cases").insert(case_data).execute()
+                        
+                        st.session_state.db_dict[str(doc_num)] = {"name": full_name, "dept": dept, "status": status_text, "note": final_note, "steps": checks}
+                        st.session_state.edit_id = None
+                        st.session_state["prevent_reloading"] = False
+                        st.session_state.form_key_index += 1
+                        st.rerun()
+                    except Exception as e: st.error(f"ขัดข้อง: {e}")
+                else: st.error("กรุณากรอกเลขหนังสือและชื่อผู้ขอตรวจ")
+        with b_col2:
+            if st.session_state.edit_id and st.button("❌ ยกเลิก", use_container_width=True):
                 st.session_state.edit_id = None
                 st.session_state["prevent_reloading"] = True
                 st.session_state.form_key_index += 1
                 st.rerun()
 
-# ==================== 📋 ฝั่งขวา: ช่องค้นหาอัจฉริยะและตารางคัดกรองข้อมูล ====================
+# ==================== ฝั่งขวา: ตารางรายชื่อสถานะ (แก้ไขให้คลีนโมเดิร์น) ====================
 with col2:
-    search_query = st.text_input("พิมพ์เลขหนังสือ หรือ ชื่อบุคคลที่ต้องการค้นหาในระบบ:", placeholder="คีย์คำค้นหาที่นี่...").strip()
+    st.markdown("<h4 style='font-weight:700; color:#1e3d59;'>📋 ตารางตรวจสอบสถานะข้อมูล</h4>", unsafe_allow_html=True)
+    search_query = st.text_input("🔍 ค้นหาด้วย เลขหนังสือ หรือ ชื่อ-สกุล:", placeholder="พิมพ์คำค้นหาที่นี่...").strip()
 
-    # แสดงป้ายเตือนการกรองข้อมูลจากแดชบอร์ด
     if st.session_state.filter_step_id is not None:
-        active_label = step_labels[st.session_state.filter_step_id]
-        st.warning(f"🎯 กำลังกรองแสดงเฉพาะรายชื่อในขั้นตอน: **{active_label}**")
-        if st.button("❌ ล้างตัวกรอง (คลิกเพื่อแสดงข้อมูลทั้งหมดล่าสุด)", use_container_width=True, type="primary"):
+        st.info(f"🎯 กำลังแสดงขั้นตอน: {step_labels[st.session_state.filter_step_id]}")
+        if st.button("❌ ล้างตัวกรองทั้งหมด", type="secondary"):
             st.session_state.filter_step_id = None
             st.session_state["prevent_reloading"] = True
             st.rerun()
 
-    st.markdown("<h4>📋 ตารางตรวจสอบสถานะข้อมูล</h4>", unsafe_allow_html=True)
-    
     if st.session_state.db_dict:
-        st.markdown('<div class="desktop-header">', unsafe_allow_html=True)
-        header_cols = st.columns([1, 1.2, 1, 1.8, 1.4, 0.7, 0.7])
-        with header_cols[0]: st.markdown("**เลขหนังสือ**")
-        with header_cols[1]: st.markdown("**ชื่อ-สกุล**")
-        with header_cols[2]: st.markdown("**ต้นสังกัด**")
-        with header_cols[3]: st.markdown("**สถานะปัจจุบัน**")
-        with header_cols[4]: st.markdown("**หมายเหตุและประวัติติดตาม**")
-        with header_cols[5]: st.markdown("**แก้ไข**")
-        with header_cols[6]: st.markdown("**ลบ**")
-        st.write("<div style='border-bottom: 2px solid #dee2e6; margin-bottom: 8px;'></div>", unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+        #สร้างโครงหัวตารางแบบเรียบหรู ไม่ใช้ div ซ้อนกล่องเทาอีกต่อไป
+        st.markdown("""
+            <table class="table-container">
+                <thead>
+                    <tr>
+                        <th class="table-header" style="width: 15%;">เลขหนังสือ</th>
+                        <th class="table-header" style="width: 20%;">ชื่อ-สกุล</th>
+                        <th class="table-header" style="width: 15%;">หน่วยงาน</th>
+                        <th class="table-header" style="width: 25%;">สถานะปัจจุบัน</th>
+                        <th class="table-header" style="width: 25%;">หมายเหตุ</th>
+                    </tr>
+                </thead>
+            </table>
+        """, unsafe_allow_html=True)
 
         for k, v in st.session_state.db_dict.items():
-            # 🔍 ตัวกรองคัดแยกตามกล่องแดชบอร์ดสถิติ
             if st.session_state.filter_step_id is not None:
-                selected_label = step_labels[st.session_state.filter_step_id]
-                if selected_label.split(".")[1].strip() not in v["status"] and selected_label not in v["status"]:
-                    continue
+                sel_lbl = step_labels[st.session_state.filter_step_id]
+                if sel_lbl.split(".")[1].strip() not in v["status"] and sel_lbl not in v["status"]: continue
 
-            # ตรวจสอบคำค้นหาในระบบ
             if search_query and (search_query not in str(k) and search_query not in str(v["name"]) and search_query not in str(v["dept"]) and search_query not in str(v["note"])): 
                 continue
-                
-            row_cols = st.columns([1, 1.2, 1, 1.8, 1.4, 0.7, 0.7])
             
-            with row_cols[0]: st.markdown(f"<span class='mobile-label'>เลขหนังสือ:</span>{k}", unsafe_allow_html=True)
-            with row_cols[1]: st.markdown(f"<span class='mobile-label'>ชื่อ-สกุล:</span>{v['name']}", unsafe_allow_html=True)
-            with row_cols[2]: st.markdown(f"<span class='mobile-label'>ต้นสังกัด:</span>{v['dept']}", unsafe_allow_html=True)
-            with row_cols[3]: st.markdown(f"<span class='mobile-label'>สถานะปัจจุบัน:</span>{v['status']}", unsafe_allow_html=True)
-            with row_cols[4]: st.markdown(f"<span class='mobile-label'>หมายเหตุ:</span>{v['note'] if v['note'] else '-'}", unsafe_allow_html=True)
+            #ใช้ระบบ Columns ดึงเนื้อหาและปุ่มจัดการให้ขนานไปกับหัวตารางอย่างเป็นระเบียบ
+            row_cols = st.columns([1.5, 2.0, 1.5, 2.5, 2.5, 0.8, 0.8])
+            with row_cols[0]: st.write(f"**{k}**")
+            with row_cols[1]: st.write(v['name'])
+            with row_cols[2]: st.write(v['dept'] if v['dept'] else "-")
+            with row_cols[3]: st.write(v['status'])
+            with row_cols[4]: st.write(v['note'] if v['note'] else "-")
             
             with row_cols[5]:
                 if st.button("✏️ แก้ไข", key=f"edit_btn_{k}", use_container_width=True):
                     st.session_state.edit_id = k
-                    st.session_state.form_key_index += 1; st.rerun()
+                    st.session_state.form_key_index += 1
+                    st.rerun()
             with row_cols[6]:
-                if st.button("🗑️ ลบข้อมูล", key=f"del_btn_{k}", use_container_width=True):
+                if st.button("🗑️ ลบ", key=f"del_btn_{k}", use_container_width=True):
                     confirm_delete_dialog(k, v["name"])
-                    
-            st.markdown("<div class='row-divider' style='border-bottom: 1px solid #dee2e6; margin-top: 4px; margin-bottom: 4px;'></div>", unsafe_allow_html=True)
+            
+            # เส้นคั่นแถวบางๆ สไตล์มินิมอลโมเดิร์น
+            st.markdown("<hr style='margin: 4px 0; border: 0; border-top: 1px solid #edf2f7;'>", unsafe_allow_html=True)
 
-        st.write("---")
-        if st.button("🔄 ดึงข้อมูลเวอร์ชันล่าสุดจากฐานข้อมูลออนไลน์", use_container_width=True):
-            st.session_state.clear(); st.rerun()
+        st.write("")
+        if st.button("🔄 อัปเดตรีเฟรชฐานข้อมูลล่าสุด", use_container_width=True):
+            st.session_state.clear()
+            st.rerun()
     else:
-        st.info("ยังไม่มีข้อมูลในระบบ หรือกำลังเชื่อมต่อฐานข้อมูล...")
+        st.info("ยังไม่มีข้อมูลในระบบฐานข้อมูล")
