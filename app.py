@@ -2,11 +2,10 @@ import streamlit as st
 import pandas as pd
 from supabase import create_client, Client
 from datetime import datetime
-import plotly.express as px  # 📊 สำหรับทำกราฟสุดทันสมัย
 
 st.set_page_config(page_title="ระบบตรวจประวัติ สภ.", layout="wide")
 
-# 🎨 🛠️ อัปเกรด CSS คุมโทน "น้ำเงิน-ดำ" และทำหน้ากากการ์ดสไตล์ AdminLTE Dashboard
+# 🎨 🛠️ ปรับแต่ง CSS คุมโทน "น้ำเงิน-ดำ" และจัดกล่อง 7 ขั้นตอนให้เรียงตัวสวยงาม
 st.markdown("""
     <style>
     /* ตั้งค่าตารางให้รองรับมือถือลื่นไหล */
@@ -22,40 +21,36 @@ st.markdown("""
         font-size: 14px !important;
     }
     
-    /* 🌌 สไตล์หน้ากากการ์ดแดชบอร์ด AdminLTE (โทนน้ำเงิน-ดำ-เทาเข้ม) */
-    .admin-card {
+    /* 🌌 สไตล์กล่องแดชบอร์ดขั้นตอน (โทนน้ำเงิน-เทาดำ) */
+    .step-card {
         color: white !important;
-        border-radius: 8px;
-        margin-bottom: 15px;
+        border-radius: 6px;
+        margin-bottom: 10px;
         position: relative;
         overflow: hidden;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+        text-align: center;
     }
-    .admin-card-inner {
-        padding: 15px 20px;
+    .step-card-inner {
+        padding: 10px 5px;
     }
-    .admin-card-value {
-        font-size: 38px;
+    .step-card-value {
+        font-size: 24px;
         font-weight: bold;
         margin: 0;
-        line-height: 1.2;
+        line-height: 1.1;
     }
-    .admin-card-title {
-        font-size: 14px;
+    .step-card-title {
+        font-size: 11px;
         opacity: 0.85;
-        margin-top: 5px;
+        margin-top: 3px;
         font-weight: 400;
-    }
-    .admin-card-footer {
-        background: rgba(0, 0, 0, 0.15);
-        padding: 4px 10px;
-        text-align: center;
-        font-size: 12px;
-        opacity: 0.9;
-        display: block;
-        text-decoration: none;
-        color: rgba(255,255,255,0.8) !important;
-        border-top: 1px solid rgba(255,255,255,0.05);
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        height: 32px;
+        line-height: 16px;
     }
     
     /* ตัวป้ายกำกับสำหรับแถวข้อมูลบนหน้าจอมือถือ */
@@ -82,9 +77,8 @@ st.markdown("""
     }
     </style>
     
-    <div style='background: linear-gradient(135deg, #0f2027, #203a43, #2c5364); padding:18px; border-radius:10px; margin-bottom:22px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);'>
-        <h2 style='color:white; text-align:center; margin:0; font-size:24px; font-weight:600; letter-spacing: 0.5px;'>ระบบฐานข้อมูลและติดตามขั้นตอนการตรวจประวัติ (สภ. ส่ง พฐ.)</h2>
-        <p style='color:#a0aab2; text-align:center; margin:5px 0 0 0; font-size:13px;'>สืบค้น ตรวจสอบสถานะ และบันทึกข้อมูลออนไลน์ครอบคลุมทุกขั้นตอน</p>
+    <div style='background: linear-gradient(135deg, #0f2027, #203a43, #2c5364); padding:15px; border-radius:10px; margin-bottom:20px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);'>
+        <h2 style='color:white; text-align:center; margin:0; font-size:22px; font-weight:600;'>ระบบฐานข้อมูลและติดตามขั้นตอนการตรวจประวัติ (สภ. ส่ง พฐ.)</h2>
     </div>
 """, unsafe_allow_html=True)
 
@@ -100,20 +94,18 @@ except Exception as e:
 # รายชื่อขั้นตอนทั้งหมด (แบบเต็ม)
 step_labels = [
     "1. รับหนังสือจากต้นสังกัด",
-    "2. กรอกประวัติ พิมพ์ลายนิ้วมือกลิ้งหมึก 2 ชุด",
+    "2. กรอกประวัติ พิมพ์มือ 2 ชุด",
     "3. ทำหนังสือส่งตรวจ พฐ. ลงลายเซ็นรอง",
-    "4. ไปส่ง พฐ. ตรวจที่ ภ.จว. แล้วนำกลับมา",
-    "5. ถ่ายเอกสารผลตรวจ 1 ชุด ไว้ในสำเนาคู่ฉับ",
-    "6. ทำหนังสือส่ง รายงานผลกลับต้นสังกัด (2 ชุด)",
-    "7. ต้นสังกัดเซ็นรับตัวจริงและคู่สำเนา เรียบร้อย"
+    "4. ไปส่ง พฐ. ตรวจที่ ภ.จว.",
+    "5. ถ่ายเอกสารผลตรวจไว้ในสำเนา",
+    "6. ทำหนังสือส่งผลกลับต้นสังกัด",
+    "7. ต้นสังกัดเซ็นรับตัวจริงเรียบร้อย"
 ]
 
 if "db_dict" not in st.session_state:
     st.session_state.db_dict = {}
 if "edit_id" not in st.session_state:
     st.session_state.edit_id = None
-if "selected_dashboard_step" not in st.session_state:
-    st.session_state.selected_dashboard_step = None
 if "form_key_index" not in st.session_state:
     st.session_state.form_key_index = 0
 
@@ -209,118 +201,45 @@ def on_step_change(index):
         for i in range(index, 7):
             st.session_state[f"step_idx_{i}_{st.session_state.form_key_index}"] = False
 
+# คำนวณจำนวนเคสที่อยู่ตามขั้นตอนต่างๆ (1-7)
+step_counts = [0] * 7  
+for k, v in st.session_state.db_dict.items():
+    v_status = v["status"]
+    for idx, label in enumerate(step_labels):
+        if label.split(".")[1].strip() in v_status or label in v_status:
+            step_counts[idx] += 1
+            break
+
+# 📊 ด้านบนสุด: แดชบอร์ดแสดงสถานะแบบ 7 ขั้นตอน (โทนน้ำเงิน-ดำ ไล่ระดับ)
+st.write("**📊 แดชบอร์ดสรุปขั้นตอนงานปัจจุบัน**")
+dash_cols = st.columns(7)
+card_backgrounds = [
+    "linear-gradient(135deg, #203a43, #0f2027)", 
+    "linear-gradient(135deg, #203a43, #0f2027)",
+    "linear-gradient(135deg, #2c5364, #203a43)",
+    "linear-gradient(135deg, #2c5364, #203a43)",
+    "linear-gradient(135deg, #1f4068, #162447)",
+    "linear-gradient(135deg, #1f4068, #162447)",
+    "#007bff" # ขั้นตอนสุดท้ายสีน้ำเงินเด่นชัดสไตล์เสร็จสิ้น
+]
+
+for idx in range(7):
+    with dash_cols[idx]:
+        st.markdown(f"""
+            <div class="step-card" style="background: {card_backgrounds[idx]};">
+                <div class="step-card-inner">
+                    <div class="step-card-value">{step_counts[idx]}</div>
+                    <div class="step-card-title">{step_labels[idx]}</div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+
+st.write("---")
+
 col1, col2 = st.columns([1.25, 1.75])
 
-# ==================== ฝั่งซ้าย: แดชบอร์ดปุ่มกด + ฟอร์มบันทึกข้อมูล ====================
+# ==================== ฝั่งซ้าย: ฟอร์มบันทึกข้อมูล ====================
 with col1:
-    st.subheader("📊 แดชบอร์ดสรุปผลความคืบหน้า")
-    
-    # คำนวณจำนวนเคสในแต่ละขั้นตอน
-    counts = [0] * 8  
-    for k, v in st.session_state.db_dict.items():
-        v_status = v["status"]
-        if "ยังไม่ได้เริ่ม" in v_status: counts[7] += 1
-        else:
-            for idx, label in enumerate(step_labels):
-                if label in v_status: counts[idx] += 1; break
-
-    total_cases = len(st.session_state.db_dict)
-    ongoing_cases = sum(counts[0:6])
-    completed_cases = counts[6]
-    not_started_cases = counts[7]
-
-    # 🏢 1. การ์ดแดชบอร์ดสไตล์ AdminLTE โทน "น้ำเงิน-เทาดำ-ฟ้า" ตามตัวอย่างกึ่งโมเดิร์น
-    sum_c1, sum_c2, sum_c3 = st.columns(3)
-    with sum_c1:
-        st.markdown(f"""
-            <div class="admin-card" style="background-color: #343a40;">
-                <div class="admin-card-inner">
-                    <div class="admin-card-value">{not_started_cases}</div>
-                    <div class="admin-card-title">⚪ ยังไม่เริ่มงาน</div>
-                </div>
-                <div class="admin-card-footer">More info ⚙️</div>
-            </div>
-        """, unsafe_allow_html=True)
-    with sum_c2:
-        st.markdown(f"""
-            <div class="admin-card" style="background: linear-gradient(45deg, #1f4068, #162447);">
-                <div class="admin-card-inner">
-                    <div class="admin-card-value">{ongoing_cases}</div>
-                    <div class="admin-card-title">🟡 อยู่ระหว่างดำเนินงาน</div>
-                </div>
-                <div class="admin-card-footer">More info ⚡</div>
-            </div>
-        """, unsafe_allow_html=True)
-    with sum_c3:
-        st.markdown(f"""
-            <div class="admin-card" style="background-color: #007bff;">
-                <div class="admin-card-inner">
-                    <div class="admin-card-value">{completed_cases}</div>
-                    <div class="admin-card-title">🟢 ปิดเคสสำเร็จ</div>
-                </div>
-                <div class="admin-card-footer">More info  ✔️</div>
-            </div>
-        """, unsafe_allow_html=True)
-
-    # 📈 2. กราฟแท่ง แนวนอน โทนน้ำเงิน-ดำ ไล่เฉดสีสุดเท่ (Plotly Chart)
-    chart_data = pd.DataFrame({
-        "ขั้นตอนการทำงาน": [
-            "⚪ ยังไม่เริ่มดำเนินการ",
-            "ขั้นที่ 1: รับหนังสือ",
-            "ขั้นที่ 2: กรอกประวัติ/พิมพ์มือ",
-            "ขั้นที่ 3: ทำหนังสือส่ง พฐ.",
-            "ขั้นที่ 4: ส่งผลตรวจ ภ.จว.",
-            "ขั้นที่ 5: ถ่ายสำเนาคู่ฉับ",
-            "ขั้นที่ 6: ทำหนังสือส่งกลับ",
-            "🟢 ขั้นที่ 7: ปิดเคสสำเร็จ"
-        ],
-        "จำนวนเรื่อง (เคส)": [counts[7], counts[0], counts[1], counts[2], counts[3], counts[4], counts[5], counts[6]],
-        "กลุ่มสถานะ": ["รอดำเนินการ", "กำลังทำ", "กำลังทำ", "กำลังทำ", "กำลังทำ", "กำลังทำ", "กำลังทำ", "เสร็จสิ้น"]
-    })
-    
-    # แมปกลุ่มสีให้แมตช์กับธีม Midnight Tech Blue
-    color_map = {"รอดำเนินการ": "#4a5568", "กำลังทำ": "#e28743", "เสร็จสิ้น": "#007bff"}
-    
-    fig = px.bar(
-        chart_data, 
-        y="ขั้นตอนการทำงาน", 
-        x="จำนวนเรื่อง (เคส)", 
-        color="กลุ่มสถานะ",
-        orientation='h',
-        color_discrete_map=color_map,
-        text="จำนวนเรื่อง (เคส)"
-    )
-    
-    fig.update_layout(
-        margin=dict(l=10, r=10, t=5, b=5),
-        height=260,
-        showlegend=False,
-        xaxis_title=None,
-        yaxis_title=None,
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        font=dict(size=11, color="#2c3e50")
-    )
-    fig.update_traces(textposition='outside', cliponaxis=False)
-    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
-
-    # 🎯 3. ตัวเลือกกรองข้อมูลเจาะลึก
-    filter_options = ["📋 แสดงข้อมูลบุคคลทั้งหมดล่าสุด"] + [f"⚪ ยังไม่เริ่มดำเนินการ ({counts[7]} เรื่อง)"] + [f"{label} ({counts[idx]} เรื่อง)" for idx, label in enumerate(step_labels)]
-    
-    selected_filter = st.selectbox("🎯 เจาะลึกกรองดูรายชื่อตามสถานะ:", filter_options)
-    if "แสดงข้อมูลบุคคลทั้งหมด" in selected_filter:
-        st.session_state.selected_dashboard_step = None
-    elif "ยังไม่เริ่ม" in selected_filter:
-        st.session_state.selected_dashboard_step = 7
-    else:
-        for idx, label in enumerate(step_labels):
-            if label in selected_filter:
-                st.session_state.selected_dashboard_step = idx
-                break
-
-    st.write("---")
-
-    # 📝 4. ฟอร์มบันทึก / แก้ไขข้อมูล
     st.subheader("📝 บันทึก / แก้ไขข้อมูล")
     if st.session_state.edit_id:
         st.warning(f"⚠️ กำลังแก้ไขเลขที่หนังสือ: {st.session_state.edit_id}")
@@ -413,13 +332,7 @@ with col1:
 # ==================== 📋 ฝั่งขวา: กล่องค้นหาและตารางรายชื่อตรวจสอบข้อมูลภาพรวม ====================
 with col2:
     search_query = st.text_input("พิมพ์เลขหนังสือ หรือ ชื่อบุคคลที่ต้องการค้นหาในระบบ:", placeholder="คีย์คำค้นหาที่นี่...").strip()
-    
-    if st.session_state.selected_dashboard_step is not None:
-        st.info(f"🔍 เปิดตัวกรองข้อมูลเฉพาะกลุ่มอยู่")
-        if st.button("❌ เคลียร์ตัวกรองขั้นตอน (ดึงข้อมูลทั้งหมดกลับมา)", use_container_width=True):
-            st.session_state.selected_dashboard_step = None; st.rerun()
 
-    st.write("---")
     st.write("**📋 ตารางตรวจสอบสถานะปัจจุบัน**")
     
     if st.session_state.db_dict:
@@ -436,8 +349,6 @@ with col2:
         st.markdown('</div>', unsafe_allow_html=True)
 
         for k, v in st.session_state.db_dict.items():
-            s_idx = 7 if "ยังไม่ได้เริ่ม" in v["status"] else next((i for i, x in enumerate(step_labels) if x in v["status"]), None)
-            if st.session_state.selected_dashboard_step is not None and s_idx != st.session_state.selected_dashboard_step: continue
             if search_query and (search_query not in str(k) and search_query not in str(v["name"]) and search_query not in str(v["dept"]) and search_query not in str(v["note"])): continue
                 
             row_cols = st.columns([1, 1.2, 1, 1.8, 1.4, 0.7, 0.7])
