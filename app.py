@@ -23,7 +23,7 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# 🔑 เชื่อมต่อกับคลาวด์ Supabase ผ่าน Secrets (ที่พี่ตั้งค่าในช่องทาง A ไว้แล้ว)
+# 🔑 เชื่อมต่อกับคลาวด์ Supabase ผ่าน Secrets
 try:
     SUPABASE_URL = st.secrets["supabase"]["url"]
     SUPABASE_KEY = st.secrets["supabase"]["key"]
@@ -52,7 +52,7 @@ if "selected_dashboard_step" not in st.session_state:
 if "form_key_index" not in st.session_state:
     st.session_state.form_key_index = 0
 
-# 🔄 ดึงข้อมูลจากคลาวด์ออนไลน์ล่าสุดมาแสดงผลพวกรีเฟรช
+# 🔄 ดึงข้อมูลจากคลาวด์ออนไลน์ล่าสุด
 if not st.session_state.get("prevent_reloading", False):
     try:
         response = supabase.table("cases").select("*").execute()
@@ -62,7 +62,6 @@ if not st.session_state.get("prevent_reloading", False):
         for row in rows:
             k = str(row.get("doc")).strip()
             if k:
-                # แปลงค่าจากข้อความ 'True'/'False' ในฐานข้อมูลกลับมาเป็นค่าติ๊กถูก True/False ใน Python
                 new_db[k] = {
                     "name": row.get("name", ""),
                     "dept": row.get("dept", ""),
@@ -128,7 +127,7 @@ def on_step_change(index):
 
 col1, col2 = st.columns([1, 1.8])
 
-# ==================== ฝั่งซ้าย: ฟอร์มบันทึก / แก้ไขข้อมูลทับ Row เดิม ====================
+# ==================== ฝั่งซ้าย: ฟอร์มบันทึก / แก้ไขข้อมูล ====================
 with col1:
     st.subheader("📝 บันทึก / แก้ไขข้อมูล")
     if st.session_state.edit_id:
@@ -162,7 +161,6 @@ with col1:
     with btn_col1:
         if st.button(btn_label, type="primary", use_container_width=True):
             if doc_num and name:
-                # 🛠️ แปลงค่า True/False เป็นข้อความ "True"/"False" ให้ตรงกับประเภท text ในฐานข้อมูลของพี่
                 case_data = {
                     "doc": str(doc_num).strip(), "name": name, "dept": dept, "status": status_text, "note": note,
                     "s1": str(checks[0]), "s2": str(checks[1]), "s3": str(checks[2]), "s4": str(checks[3]), 
@@ -170,10 +168,8 @@ with col1:
                 }
                 try:
                     if st.session_state.edit_id:
-                        # ✏️ อัปเดตทับบรรทัดเดิมที่มีค่าคอลัมน์ doc ตรงกัน
                         supabase.table("cases").update(case_data).eq("doc", st.session_state.edit_id).execute()
                     else:
-                        # ➕ เพิ่มบรรทัดใหม่
                         supabase.table("cases").insert(case_data).execute()
                     
                     st.session_state.db_dict[str(doc_num)] = {"name": name, "dept": dept, "status": status_text, "note": note, "steps": checks}
@@ -196,6 +192,7 @@ with col1:
 
 # ==================== ฝั่งขวา: แดชบอร์ดปุ่มกดและตารางแสดงผลภาพรวม ====================
 with col2:
+    # 🌟 ย้ายส่วนคำนวณและปุ่มกด Dashboard ขึ้นมาไว้แรกสุด 🌟
     st.subheader("📊 ระบบติดตามสถานะภาพรวม")
     
     counts = [0] * 8  
@@ -240,6 +237,7 @@ with col2:
             st.session_state.selected_dashboard_step = None if st.session_state.selected_dashboard_step == 7 else 7; st.rerun()
 
     st.write("---")
+    # 🔍 ย้ายกล่องค้นหาและตารางตรวจสอบสถานะมาไว้ด้านล่างแดชบอร์ด
     search_query = st.text_input("พิมพ์รหัสหนังสือ หรือ ชื่อบุคคลที่ต้องการค้นหา:", placeholder="พิมพ์ค้นหาที่นี่...").strip()
     
     if st.session_state.selected_dashboard_step is not None:
