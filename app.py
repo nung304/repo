@@ -5,7 +5,7 @@ from datetime import datetime
 
 st.set_page_config(page_title="ระบบตรวจประวัติ สภ.", layout="wide")
 
-# 🎨 🛠️ ปรับแต่ง CSS เน้นฟอนต์แดชบอร์ดให้ "ใหญ่ หนา คมชัด" และจัดรูปทรงกล่อง
+# 🎨 🛠️ อัปเกรด CSS เน้นฟอนต์แดชบอร์ดให้ "ใหญ่พิเศษ หนาเข้ม คมชัดสูงสุด"
 st.markdown("""
     <style>
     /* ตั้งค่าตารางให้รองรับมือถือลื่นไหล */
@@ -21,38 +21,40 @@ st.markdown("""
         font-size: 14px !important;
     }
     
-    /* 🌌 สไตล์กล่องแดชบอร์ดขั้นตอน - ปรับฟอนต์ให้อ่านง่ายและชัดเจนขึ้นมาก */
+    /* 🌌 สไตล์กล่องแดชบอร์ดขั้นตอน - ปรับฟอนต์ให้ใหญ่พิเศษสะใจ ชัดเจนสูงสุด */
     .step-card {
         color: white !important;
-        border-radius: 8px;
-        margin-bottom: 5px;
+        border-radius: 10px;
+        margin-bottom: 6px;
         position: relative;
         overflow: hidden;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        box-shadow: 0 5px 12px rgba(0,0,0,0.2);
         text-align: center;
-        border: 1px solid rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.15);
     }
     .step-card-inner {
-        padding: 12px 6px;
+        padding: 15px 8px;
     }
     .step-card-value {
-        font-size: 32px; /* ขยายตัวเลขให้ใหญ่ชัดเจน */
-        font-weight: 800; /* ปรับให้หนาพิเศษ */
+        font-size: 42px; /* 🔥 ขยายตัวเลขให้ใหญ่ยักษ์ ชัดเจนสะใจ */
+        font-weight: 900; /* 🔥 หนาเข้มพิเศษสูงสุด (Black/Extra Bold) */
         margin: 0;
-        line-height: 1.1;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        line-height: 1;
+        color: #ffffff !important;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.5); /* เพิ่มมิติเงาให้ลอยเด่นออกมา */
     }
     .step-card-title {
-        font-size: 13px; /* ขยายตัวอักษรขั้นตอน */
-        font-weight: 600; /* ปรับให้หนาขึ้นอ่านง่าย */
-        opacity: 0.95;
-        margin-top: 6px;
+        font-size: 16px; /* 🔥 ขยายข้อความขั้นตอนให้อ่านง่ายเต็มตา ไม่ต้องเพ่ง */
+        font-weight: 700; /* หนาเข้มเด่นชัด */
+        color: #ffffff !important; /* ปรับเป็นสีขาวล้วน 100% เพื่อความคมชัด */
+        margin-top: 8px;
         display: -webkit-box;
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
-        height: 36px;
-        line-height: 18px;
+        height: 44px;
+        line-height: 22px;
+        text-shadow: 1px 1px 3px rgba(0,0,0,0.4);
     }
     
     /* ตัวป้ายกำกับสำหรับแถวข้อมูลบนหน้าจอมือถือ */
@@ -80,7 +82,7 @@ st.markdown("""
     </style>
     
     <div style='background: linear-gradient(135deg, #0f2027, #203a43, #2c5364); padding:15px; border-radius:10px; margin-bottom:20px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);'>
-        <h2 style='color:white; text-align:center; margin:0; font-size:22px; font-weight:600;'>ระบบฐานข้อมูลและติดตามขั้นตอนการตรวจประวัติ (สภ. ส่ง พฐ.)</h2>
+        <h2 style='color:white; text-align:center; margin:0; font-size:24px; font-weight:600;'>ระบบฐานข้อมูลและติดตามขั้นตอนการตรวจประวัติ (สภ. ส่ง พฐ.)</h2>
     </div>
 """, unsafe_allow_html=True)
 
@@ -111,7 +113,7 @@ if "edit_id" not in st.session_state:
 if "form_key_index" not in st.session_state:
     st.session_state.form_key_index = 0
 if "filter_step_id" not in st.session_state:
-    st.session_state.filter_step_id = None  # ตัวแปรสำหรับเก็บขั้นตอนที่ถูกคลิกเลือกกรอง
+    st.session_state.filter_step_id = None  
 
 # 🔄 ดึงข้อมูลจากคลาวด์ออนไลน์ล่าสุด
 if not st.session_state.get("prevent_reloading", False):
@@ -214,8 +216,8 @@ for k, v in st.session_state.db_dict.items():
             step_counts[idx] += 1
             break
 
-# 📊 ด้านบนสุด: แดชบอร์ดแสดงสถานะแบบ 7 ขั้นตอน (โทนน้ำเงิน-ดำ ไล่ระดับ อ่านง่าย และคลิกเลือกได้)
-st.write("**📊 แดชบอร์ดสรุปขั้นตอนงานปัจจุบัน (คลิกเลือกขั้นตอนที่ต้องการดูประวัติได้เลยครับ)**")
+# 📊 ด้านบนสุด: แดชบอร์ดแสดงสถานะแบบ 7 ขั้นตอน (เน้นความหนาและใหญ่ระดับ HD)
+st.write("**📊 แดชบอร์ดสรุปขั้นตอนงานปัจจุบัน (คลิกเลือกขั้นตอนที่ต้องการตรวจสอบรายชื่อด้านล่าง)**")
 dash_cols = st.columns(7)
 card_backgrounds = [
     "linear-gradient(135deg, #1A365D, #0A192F)", 
@@ -224,14 +226,13 @@ card_backgrounds = [
     "linear-gradient(135deg, #2B6CB0, #1A365D)",
     "linear-gradient(135deg, #2B6CB0, #2A4365)",
     "linear-gradient(135deg, #2C5282, #2A4365)",
-    "linear-gradient(135deg, #007bff, #004085)" # ขั้นตอนสุดท้ายสีน้ำเงินเด่นชัดเปิดไฟสำเร็จ
+    "linear-gradient(135deg, #007bff, #004085)" 
 ]
 
 for idx in range(7):
     with dash_cols[idx]:
-        # เช็คว่าขั้นตอนนี้กำลังโดนเลือกกรองอยู่หรือไม่เพื่อไฮไลต์ขอบสีทองเพิ่มความชัดเจน
         is_active = st.session_state.filter_step_id == idx
-        border_style = "border: 2px solid #FFD700; box-shadow: 0 0 10px #FFD700;" if is_active else ""
+        border_style = "border: 2.5px solid #FFD700; box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);" if is_active else ""
         
         st.markdown(f"""
             <div class="step-card" style="background: {card_backgrounds[idx]}; {border_style}">
@@ -242,8 +243,8 @@ for idx in range(7):
             </div>
         """, unsafe_allow_html=True)
         
-        # 🔍 ปุ่มมาโชว์ข้อมูลหลังจากคลิก
-        btn_txt = "📌 กำลังดูอยู่" if is_active else "🔍 คลิกดูข้อมูล"
+        # 🔍 ปุ่มคลิกเพื่อเปิดดูข้อมูล
+        btn_txt = "📌 ดูกลุ่มนี้อยู่" if is_active else "🔎 คลิกดูข้อมูล"
         if st.button(btn_txt, key=f"btn_filter_step_{idx}", use_container_width=True, type="secondary" if not is_active else "primary"):
             st.session_state.filter_step_id = idx
             st.session_state["prevent_reloading"] = True
@@ -344,15 +345,15 @@ with col1:
                 st.session_state.form_key_index += 1
                 st.rerun()
 
-# ==================== 📋 ฝั่งขวา: กล่องค้นหาและตารางรายชื่อตรวจสอบข้อมูลภาพรวม ====================
+# ==================== 📋 ฝั่งขวา: กล่องค้นหาและตารางรายชื่อข้อมูลภาพรวม ====================
 with col2:
     search_query = st.text_input("พิมพ์เลขหนังสือ หรือ ชื่อบุคคลที่ต้องการค้นหาในระบบ:", placeholder="คีย์คำค้นหาที่นี่...").strip()
 
-    # แสดงป้ายเตือนเมื่อพี่เปิดตัวกรองตามขั้นตอนอยู่
+    # แสดงแถบแจ้งเตือนสว่างวาบเมื่อพี่กรองข้อมูลตามหัวแดชบอร์ดอยู่
     if st.session_state.filter_step_id is not None:
         active_label = step_labels[st.session_state.filter_step_id]
-        st.warning(f"🎯 กำลังแสดงเฉพาะรายชื่อใน: **{active_label}**")
-        if st.button("❌ ล้างตัวกรอง (กลับไปแสดงทั้งหมดล่าสุด)", use_container_width=True, type="primary"):
+        st.warning(f"🎯 กำลังแสดงเฉพาะรายชื่อในขั้นตอน: **{active_label}**")
+        if st.button("❌ ล้างตัวกรอง (คลิกเพื่อกลับไปแสดงรายชื่อทั้งหมดล่าสุด)", use_container_width=True, type="primary"):
             st.session_state.filter_step_id = None
             st.session_state["prevent_reloading"] = True
             st.rerun()
@@ -373,14 +374,13 @@ with col2:
         st.markdown('</div>', unsafe_allow_html=True)
 
         for k, v in st.session_state.db_dict.items():
-            # 🔍 ระบบกรองข้อมูลตามแดชบอร์ดที่พี่คลิกเลือก
+            # 🔍 ระบบแมปกรองข้อมูลอัจฉริยะเมื่อกดคลิกเลือกขั้นตอนจากแดชบอร์ด
             if st.session_state.filter_step_id is not None:
                 selected_label = step_labels[st.session_state.filter_step_id]
-                # ตรวจสอบว่าในข้อความสถานะปัจจุบันตรงกับป้ายข้อความหลักที่ถูกคลิกหรือไม่
                 if selected_label.split(".")[1].strip() not in v["status"] and selected_label not in v["status"]:
                     continue
 
-            # ระบบค้นหาคำค้นทั่วไปแบบพิมพ์พิมพ์เอง
+            # ระบบสืบค้นด้วยคำค้นกล่องพิมพ์มือทั่วไป
             if search_query and (search_query not in str(k) and search_query not in str(v["name"]) and search_query not in str(v["dept"]) and search_query not in str(v["note"])): 
                 continue
                 
