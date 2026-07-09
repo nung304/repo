@@ -5,27 +5,24 @@ from datetime import datetime
 
 st.set_page_config(page_title="ระบบตรวจประวัติ สภ.", layout="wide")
 
-# 🎨 🛠️ อัปเดตธีมพื้นหลังเป็นภาพสไตล์โต๊ะตรวจลายนิ้วมือ พฐ. (Forensic Science & Fingerprints)
+# 🎨 🛠️ ปรับกลับเป็นพื้นหลังสีขาวสว่าง คลีน ๆ ปกติเรียบร้อยครับ
 st.markdown("""
     <style>
-    /* 🌆 ใช้ภาพแนว Forensic / Fingerprint เท่ ๆ โทนสีน้ำเงิน-ฟ้าสไตล์กองพิสูจน์หลักฐาน */
+    /* 🌆 พื้นหลังสีขาวสว่างปกติ */
     .stApp {
-        background-image: linear-gradient(rgba(10, 22, 35, 0.88), rgba(8, 16, 26, 0.93)), 
-                          url("https://images.unsplash.com/photo-1530210120071-aa4d16feea3d?q=80&w=2000");
-        background-size: cover;
-        background-position: center;
-        background-attachment: fixed;
+        background-color: #ffffff;
+        color: #333333;
     }
     
-    /* 🖥️ กล่องเนื้อหาหลักแบบโปร่งแสง มีกลิ่นอายห้องปฏิบัติการนิติวิทยาศาสตร์ดิจิทัล */
+    /* 🖥️ กล่องเนื้อหาหลัก */
     [data-testid="stVerticalBlock"] > div {
-        background-color: rgba(6, 18, 30, 0.6);
+        background-color: #f8f9fa;
         padding: 10px;
         border-radius: 14px;
-        border: 1px solid rgba(0, 150, 255, 0.12);
+        border: 1px solid #e9ecef;
     }
     
-    /* ตั้งค่าตารางให้รองรับมือถือได้ลื่นไหล ไม่ล้นจอ */
+    /* ตั้งค่าตารางให้รองรับมือถือลื่นไหล */
     .stTable, [data-testid="stTable"] {
         display: block !important;
         width: 100% !important;
@@ -38,16 +35,15 @@ st.markdown("""
         font-size: 14px !important;
     }
     
-    /* 🌌 สไตล์กล่องแดชบอร์ดขั้นตอน - ฟอนต์ 42px หนาเด่น ตีเงาหนาเพื่อสู้กับภาพลายเส้นด้านหลัง */
+    /* 📊 สไตล์กล่องแดชบอร์ดขั้นตอน - ตัวเลข 42px ใหญ่ หนา เด่นชัดบนพื้นหลังสว่าง */
     .step-card {
         color: white !important;
         border-radius: 10px;
         margin-bottom: 6px;
         position: relative;
         overflow: hidden;
-        box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         text-align: center;
-        border: 1px solid rgba(255,255,255,0.15);
     }
     .step-card-inner {
         padding: 15px 8px;
@@ -58,7 +54,6 @@ st.markdown("""
         margin: 0;
         line-height: 1;
         color: #ffffff !important;
-        text-shadow: 2px 2px 6px rgba(0,0,0,0.9); /* เพิ่มเงาเข้มพิเศษให้อ่านง่ายขึ้น */
     }
     .step-card-title {
         font-size: 16px; 
@@ -71,20 +66,18 @@ st.markdown("""
         overflow: hidden;
         height: 44px;
         line-height: 22px;
-        text-shadow: 1px 1px 4px rgba(0,0,0,0.8);
     }
     
-    /* ล็อกสีฟอนต์ข้อความคำอธิบายทั้งหมดให้เป็นสีขาวสว่างและอ่านง่าย */
+    /* ล็อกสีฟอนต์ข้อความทั่วไปในระบบ */
     label, p, .stMarkdown {
-        color: #ffffff !important;
-        text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
+        color: #333333 !important;
     }
     
     /* ป้ายกำกับข้อมูลในโหมดมือถือ */
     .mobile-label {
         display: none;
         font-weight: bold;
-        color: #00bcd4;
+        color: #0066cc;
         min-width: 90px;
     }
     
@@ -97,15 +90,16 @@ st.markdown("""
             margin-right: 5px;
         }
         .row-divider {
-            border-bottom: 2px solid #1e3d59 !important;
+            border-bottom: 2px solid #dee2e6 !important;
             margin-top: 12px !important;
             margin-bottom: 12px !important;
         }
     }
     </style>
     
-    <div style='background: linear-gradient(135deg, #041222, #0a2240); padding:20px; border-radius:12px; margin-bottom:25px; box-shadow: 0 6px 25px rgba(0,0,0,0.6); border: 1px solid rgba(0, 150, 255, 0.4);'>
-        <h2 style='color:#00bcd4; text-align:center; margin:0; font-size:26px; font-weight:700; text-shadow: 0 0 12px rgba(0,188,212,0.6); letter-spacing: 0.5px;'>ระบบฐานข้อมูลและติดตามขั้นตอนการตรวจประวัติ (สภ. ส่ง พฐ.)</h2>
+    <!-- ส่วนหัวเว็บบาร์โทนสีกรมท่า สุภาพ เรียบร้อย ชัดเจน -->
+    <div style='background: linear-gradient(135deg, #1e3d59, #17b890); padding:20px; border-radius:12px; margin-bottom:25px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);'>
+        <h2 style='color:#ffffff; text-align:center; margin:0; font-size:26px; font-weight:700;'>ระบบฐานข้อมูลและติดตามขั้นตอนการตรวจประวัติ (สภ. ส่ง พฐ.)</h2>
     </div>
 """, unsafe_allow_html=True)
 
@@ -239,24 +233,24 @@ for k, v in st.session_state.db_dict.items():
             step_counts[idx] += 1
             break
 
-# 📊 ด้านบนสุด: แดชบอร์ดสรุปแบบกล่องสถิติสไตล์สืบสวน
+# 📊 ด้านบนสุด: แดชบอร์ดสรุปขั้นตอนงานปัจจุบัน
 st.write("**📊 แดชบอร์ดสรุปขั้นตอนงานปัจจุบัน (คลิกเลือกขั้นตอนที่ต้องการตรวจสอบรายชื่อด้านล่าง)**")
 dash_cols = st.columns(7)
 card_backgrounds = [
-    "linear-gradient(135deg, #0a1825, #1c384e)", 
-    "linear-gradient(135deg, #0a1825, #1c384e)",
-    "linear-gradient(135deg, #0b253c, #19456b)",
-    "linear-gradient(135deg, #0b253c, #19456b)",
-    "linear-gradient(135deg, #0a2e16, #1f572d)",
-    "linear-gradient(135deg, #3d0d4a, #6c24a3)",
-    "linear-gradient(135deg, #004da1, #0076ff)" 
+    "linear-gradient(135deg, #4a69bd, #1e3d59)", 
+    "linear-gradient(135deg, #4a69bd, #1e3d59)",
+    "linear-gradient(135deg, #1e3d59, #17b890)",
+    "linear-gradient(135deg, #1e3d59, #17b890)",
+    "linear-gradient(135deg, #2ecc71, #27ae60)",
+    "linear-gradient(135deg, #9b59b6, #8e44ad)",
+    "linear-gradient(135deg, #e74c3c, #c0392b)" 
 ]
 
 for idx in range(7):
     with dash_cols[idx]:
         is_active = st.session_state.filter_step_id == idx
-        # กล่องที่กดกรองดูข้อมูลอยู่ จะเปิดไฟนีออนสีทองสว่างวาบล้อมรอบทันทีเพื่อให้สังเกตได้ชัดเจน
-        border_style = "border: 2.5px solid #FFD700; box-shadow: 0 0 22px rgba(255, 215, 0, 0.85);" if is_active else ""
+        # เมื่อคลิกเลือกดูขั้นตอน จะเน้นกรอบหนาสีทองส่องประกายชัดเจน
+        border_style = "border: 3px solid #ffcc00; box-shadow: 0 0 15px rgba(255, 204, 0, 0.6);" if is_active else ""
         
         st.markdown(f"""
             <div class="step-card" style="background: {card_backgrounds[idx]}; {border_style}">
@@ -280,7 +274,7 @@ col1, col2 = st.columns([1.25, 1.75])
 
 # ==================== ฝั่งซ้าย: ฟอร์มบันทึกข้อมูลและอัปเดตสถานะ ====================
 with col1:
-    st.markdown("<h3 style='color:#00bcd4; text-shadow: 0 0 8px rgba(0,188,212,0.4);'>📝 บันทึก / แก้ไขข้อมูล</h3>", unsafe_allow_html=True)
+    st.markdown("<h3>📝 บันทึก / แก้ไขข้อมูล</h3>", unsafe_allow_html=True)
     if st.session_state.edit_id:
         st.warning(f"⚠️ กำลังแก้ไขเลขที่หนังสือ: {st.session_state.edit_id}")
     else:
@@ -382,7 +376,7 @@ with col2:
             st.session_state["prevent_reloading"] = True
             st.rerun()
 
-    st.markdown("<h4 style='color:#00bcd4; text-shadow: 0 0 8px rgba(0,188,212,0.4);'>📋 ตารางตรวจสอบสถานะข้อมูล</h4>", unsafe_allow_html=True)
+    st.markdown("<h4>📋 ตารางตรวจสอบสถานะข้อมูล</h4>", unsafe_allow_html=True)
     
     if st.session_state.db_dict:
         st.markdown('<div class="desktop-header">', unsafe_allow_html=True)
@@ -394,7 +388,7 @@ with col2:
         with header_cols[4]: st.markdown("**หมายเหตุและประวัติติดตาม**")
         with header_cols[5]: st.markdown("**แก้ไข**")
         with header_cols[6]: st.markdown("**ลบ**")
-        st.write("<div style='border-bottom: 2px solid #00bcd4; margin-bottom: 8px;'></div>", unsafe_allow_html=True)
+        st.write("<div style='border-bottom: 2px solid #dee2e6; margin-bottom: 8px;'></div>", unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
         for k, v in st.session_state.db_dict.items():
@@ -424,7 +418,7 @@ with col2:
                 if st.button("🗑️ ลบข้อมูล", key=f"del_btn_{k}", use_container_width=True):
                     confirm_delete_dialog(k, v["name"])
                     
-            st.markdown("<div class='row-divider' style='border-bottom: 1px solid rgba(255,255,255,0.12); margin-top: 4px; margin-bottom: 4px;'></div>", unsafe_allow_html=True)
+            st.markdown("<div class='row-divider' style='border-bottom: 1px solid #dee2e6; margin-top: 4px; margin-bottom: 4px;'></div>", unsafe_allow_html=True)
 
         st.write("---")
         if st.button("🔄 ดึงข้อมูลเวอร์ชันล่าสุดจากฐานข้อมูลออนไลน์", use_container_width=True):
